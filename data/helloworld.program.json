@@ -1,0 +1,5 @@
+{
+  "kernel":{
+    "source":"__kernel void hello(__global char* string)\n{\nstring[0] = 'H';\nstring[1] = 'e';\nstring[2] = 'l';\nstring[3] = 'l';\nstring[4] = 'o';\nstring[5] = ',';\nstring[6] = ' ';\nstring[7] = 'W';\nstring[8] = 'o';\nstring[9] = 'r';\nstring[10] = 'l';\nstring[11] = 'd';\nstring[12] = '!';\nstring[13] = '\\0';\n}"
+  }
+}
