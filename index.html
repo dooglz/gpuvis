@@ -28,18 +28,18 @@
 
         <!-- Add your site or application content here -->
         <p>Hello world! This is GPUVIS</p>
-        <section id="examples">
-            <h1>Examples</h1>
-            <div class="row">
+            <button type="button" class="btn btn-secondary" onclick="Refresh();">ReGo()</button>
+
+            <section id="examples">
+            <div class="row" id="coderow">
                 <div class="col col-lg-6">
-            <p>Kernel Source</p>
-            <pre class="language-C"><code id="kernel_source" class="language-C line-numbers"></code>
-            </pre>
-                </div><div class="col col-lg-6">
-            <p>Kernel Assembly</p>
-            <pre class="language-C"><code id="kernel_asm" class="language-C line-numbers"></code>
-            </pre>
-            </div>
+                    <p>Kernel Source</p>
+                    <pre><code id="kernel_source" class="language-C line-numbers"></code></pre>
+                </div>
+                <div class="col col-lg-6">
+                    <p>Kernel Assembly</p>
+                    <pre><code id="kernel_asm" class="language-C line-numbers"></code></pre>
+                </div>
             </div>
         </section>
 
