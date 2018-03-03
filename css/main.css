@@ -289,3 +289,8 @@ textarea {
         page-break-after: avoid;
     }
 }
+
+
+pre{
+    max-height: 468px;
+}
