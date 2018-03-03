@@ -207,7 +207,7 @@ function ParseAsm(asm) {
                 let opr = o.operand[oi];
                 if (!isRegister(opr)) {
                     let int = parseInt(opr);
-                    if (isNaN(int)) {
+                    if (isNaN(int) || int+"" == opr) {
                         continue;
                     }
                     if (int >= 32 && int < 122) {
