@@ -1,4 +1,6 @@
-[
+{
+  "version":"Southern Islands",
+  "codes":[
   {"opcode":"s_buffer_load_dwordx2","type":"s","branch":false,"ticks":1,"help":""},
   {"opcode":"s_bfe_u32","type":"s","branch":false,"ticks":1,"help":"Bit Field Extract","r":[1,2],"w":[0]},
   {"opcode":"s_mov_b32","type":"s","branch":false,"ticks":1,"help":"generic 32bit move","r":[1],"w":[0]},
@@ -7,6 +9,5 @@
   {"opcode":"v_mov_b32","type":"v","branch":false,"ticks":1,"help":"generic 32bit move","r":[1],"w":[0]},
   {"opcode":"flat_store_byte","type":"flat","branch":false,"ticks":1,"help":"write (1) to somewhere (0)","r":[0,1]},
   {"opcode":"s_waitcnt","type":"s","branch":false,"ticks":1,"help":""},
-  {"opcode":"s_endpgm","type":"s","branch":false,"ticks":1,"help":""}
-
-]
+  {"opcode":"s_endpgm","type":"s","branch":false,"ticks":1,"help":""}]
+}

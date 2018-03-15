@@ -1,0 +1,24 @@
+<div class="row ">
+    <div class="col-lg-4">
+        <button type="button" class="btn btn-secondary" onclick="Refresh();" id="btn_diss">Dissasemble!</button>
+    </div>
+    <div class="col-lg-4">
+        Loaded Instruction Set (ISA): <span style="font-weight:bold" id="isa_div">none!</span>
+    </div>
+    <div class="col-lg-4">
+        Compiler: <span style="font-weight:bold" id="comp_div">none!</span>
+        Disassembler: <span style="font-weight:bold" id="dissas_div">none!</span>
+    </div>
+</div>
+
+<hr>
+
+<div class="row" id="coderow"></div>
+<div class="row" id="statsrow"></div>
+
+<script>
+    var url = "js/page_asm.js";
+    $.getScript(url).done(function () {
+        main_asm();
+    });
+</script>

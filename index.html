@@ -24,25 +24,43 @@
             <p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade your browser</a> to improve your experience and security.</p>
         <![endif]-->
 
-        <main role="main" class="container-fluid">
-
-        <!-- Add your site or application content here -->
-        <p>Hello world! This is GPUVIS</p>
-            <button type="button" class="btn btn-secondary" onclick="Refresh();">ReGo()</button>
-
-            <section id="examples">
-            <div class="row" id="coderow">
-                <div class="col col-lg-6">
-                    <p>Kernel Source</p>
-                    <pre><code id="kernel_source" class="language-C line-numbers"></code></pre>
-                </div>
-                <div class="col col-lg-6">
-                    <p>Kernel Assembly</p>
-                    <pre><code id="kernel_asm" class="language-C line-numbers"></code></pre>
-                </div>
+        <!-- Navigation -->
+        <nav class="navbar navbar-dark navbar-expand-md bg-dark justify-content-center fixed-top">
+            <a href="" class="navbar-brand d-flex w-50 mr-auto">GPUVIS</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#collapsingNavbar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="navbar-collapse collapse w-100" id="collapsingNavbar">
+                <ul class="navbar-nav mx-auto w-100 justify-content-center">
+                    <li class="nav-item active">
+                        <span class="nav-link">Program: <span style="font-family: Consolas" id="div_pgrm">none</span></span>
+                    </li>
+                </ul>
+                <ul class="nav pageselect navbar-nav ml-auto w-100 justify-content-end">
+                    <li class="nav-item">
+                        <span class="nav-link" data-page="loader">Loader</span>
+                    </li>
+                    <li class="nav-item">
+                        <span class="nav-link" data-page="asm">ASM</span>
+                    </li>
+                    <li class="nav-item">
+                        <span class="nav-link" data-page="">Simulate</span>
+                    </li>
+                    <li class="nav-item">
+                        <span class="nav-link" data-page="">Stats</span>
+                    </li>
+                </ul>
             </div>
-        </section>
+        </nav>
 
+        <div class="alert alert-warning" id="warn_bar" style="display: none">
+            <strong>Warning!</strong> <span id="warn_text">You're dereferencing a null ptr!</span>
+            <button type="button" class="close" aria-label="Close" onclick="div_warn.hide();">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
+        <main role="main" class="container-fluid" id="mainContainer">
         </main><!-- /.container -->
 
         <script src="js/vendor/modernizr-3.5.0.min.js"></script>
