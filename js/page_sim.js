@@ -10,10 +10,11 @@ function main_sim() {
 }
 
 //let sim_ticks = [];
+const cus = 56
 const simdlanes=16;
 const simdunits=4;
 const wfSize = simdlanes * simdunits;
-const sgprs = 6;
+const sgprs = 12;
 const vgprs = 7;
 
 function getIsa(code){
@@ -62,12 +63,20 @@ var globalTick = 0;
 var globalRegList = [];
 var globalSRegList = [];
 var globalVRegList = [];
+var globalUnknownWrites =0;
+var globalUnknownReads =0;
+var globalVIdleTicks = 0;
+var globalVWorkTicks = 0;
+
 function Launchsim(){
     try {
         //setup regs
         globalRegList = [];
         globalSRegList = [];
         globalVRegList = [];
+        globalUnknownWrites =0;
+        globalUnknownReads =0;
+        globalIdleTicks = 0;
         let opcode = "";
         let kernels = 1;
         let cus = [];
@@ -114,16 +123,23 @@ function calcStats(cuCount){
         ret+="<p>"+rl+" registers written to: "+ writtenregs +" / " + totals[rl] +
             "<br>"+rl+" registers read from: "+ readregs +" / " + totals[rl] +
             "<br>"+rl+" register reads: "+ rotalreads +
-            "<br>"+rl+" register writes: "+ totalwrites + "</p>"
+            "<br>"+rl+" register writes: "+ totalwrites + "</p>";
     }
+    ret+="<p>Unaccounted Writes: " +globalUnknownWrites+
+        "<br>Unaccounted Reads: " +globalUnknownReads+"</p>";
 
+    ret+="<p>Acive SIMD Ticks:" +globalVWorkTicks+
+        "<br>Idle SIMD Ticks: " +globalVIdleTicks+
+        "<br>Local Occupancy: " + sigFigs((globalVWorkTicks/(globalVWorkTicks+globalVIdleTicks))*100,4)+'%'+
+        "<br>Global Occupancy: " + sigFigs((globalVWorkTicks/((globalVWorkTicks+globalVIdleTicks)*cus))*100,4)+ "%</p>";
 
     $("#simresults").html(ret);
 }
 
 class ComputeUnit {
-    constructor(id) {
-        this.id = id;
+    constructor(gid,lid) {
+        this.gid = gid;
+        this.lid = lid;
         this.pc =0;
         this.sALU = 0;
         this.LDS = 0;
@@ -135,13 +151,15 @@ class ComputeUnit {
         this.tickreads = [];
         this.tickwrites = [];
         this.lastTick = 0;
+        this.execMask = Array(simdunits*simdlanes).fill(false);
+        this.execMask[0] = true;
         for(let i =0; i < sgprs; ++i){
-            let r =new Register(id+'_sgpr_'+i);
+            let r =new Register(this.gid+'_sgpr_'+i);
             globalSRegList.push(r)
             this.SGPR.push(r);
         }
         for(let i =0; i < simdunits; ++i){
-            this.vALUs.push(new V_ALU(id+'_'+i));
+            this.vALUs.push(new V_ALU(this.gid+'_'+i,i));
         }
     }
     get opcode() {
@@ -195,7 +213,7 @@ class ComputeUnit {
         console.log(this.id, "cu tick",this,this.opcode,isac );
         if(isac.type === "v" || isac.type === "flat"){
             for(let s of this.vALUs){
-                s.tick(isac,this.opcode,this.operand);
+                s.tick(isac,this.opcode,this.operand,this.execMask);
                 this.tickreads.push(s.tickreads);
                 this.tickwrites.push(s.tickwrites);
             }
@@ -224,22 +242,23 @@ class ComputeUnit {
 }
 
 class V_ALU {
-    constructor(id) {
-        this.id = id;
+    constructor(gid,lid) {
+        this.gid = gid;
+        this.lid = lid;
         this.lanes = [];
         this.reads = [];
         this.writes = [];
         this.tickreads = [];
         this.tickwrites = [];
         for(let i =0; i < simdlanes; ++i){
-            this.lanes.push(new V_ALU_lane(id+'_'+i));
+            this.lanes.push(new V_ALU_lane(this.gid+'_'+i,(this.lid*simdlanes)+i));
         }
     }
-    tick(isac,opcode,operand){
+    tick(isac,opcode,operand,execMask){
         this.tickreads = [];
         this.tickwrites = [];
         for(let l of this.lanes) {
-            l.tick(isac,opcode,operand);
+            l.tick(isac,opcode,operand,execMask);
             this.tickreads.push(l.tickreads);
             this.tickwrites.push(l.tickwrites);
         }
@@ -250,8 +269,9 @@ class V_ALU {
 }
 
 class V_ALU_lane {
-    constructor(id){
-        this.id = id;
+    constructor(gid,lid){
+        this.gid = gid;
+        this.lid = lid;
         this.VGPR = [];
         this.reads = [];
         this.writes = [];
@@ -259,10 +279,22 @@ class V_ALU_lane {
         this.tickwrites = [];
         this.lasttick = 0;
         for(let i =0; i < vgprs; ++i){
-            let r = new Register(id+'_vgpr_'+i)
+            let r = new Register(this.gid+'_vgpr_'+i)
             globalVRegList.push(r)
             this.VGPR.push(r);
         }
+    }
+    writeIndirect(loc,what = 1){
+        let o = {tick:globalTick,loc:"IND",what:what};
+        this.writes.push(o);
+        this.tickwrites.push(o);
+        globalUnknownWrites++;
+    }
+    readIndirect(loc){
+        let o = {tick:globalTick,loc:"IND"};
+        this.reads.push(o);
+        this.tickreads.push(o);
+        globalUnknownReads++;
     }
     writeTo(loc,what = 1){
         let o = {tick:globalTick,loc:loc,what:what};
@@ -294,20 +326,35 @@ class V_ALU_lane {
             //TODO
         }
     }
-    tick(isac,opcode,operand){
+    tick(isac,opcode,operand,execMask){
         this.tickreads = [];
         this.tickwrites = [];
         this.lasttick = globalTick;
+        if(!execMask[this.lid]){
+            globalVIdleTicks++;
+            return;
+        }
+        globalVWorkTicks++;
         //do reads
         if(isac.r){
             for (let r of isac.r) {
                 this.readFrom(operand[r]);
             }
         }
+        if(isac.ri){
+            for (let r of isac.ri) {
+                this.readIndirect(operand[r]);
+            }
+        }
         //do writes
         if(isac.w){
             for (let w of isac.w) {
                 this.writeTo(operand[w]);
+            }
+        }
+        if(isac.wi){
+            for (let w of isac.wi) {
+                this.writeIndirect(operand[w]);
             }
         }
     }
