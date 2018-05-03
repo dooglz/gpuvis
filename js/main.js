@@ -1,7 +1,7 @@
 var div_main;
 var div_warn;
-var program = null;
-
+let isa = null;
+let program = null;
 $(document).ready(function () {
     console.log("hello world");
     div_main = $("#mainContainer");
@@ -38,4 +38,12 @@ function LoadPage(page) {
 function Warn(str) {
     $("#warn_text").text(str);
     div_warn.show();
+}
+
+function is(v){
+    let r = false;
+    r |= (typeof v === undefined);
+    r |= (v === null);
+    r |= (v === "");
+    return !r;
 }

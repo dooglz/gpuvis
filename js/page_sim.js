@@ -1,15 +1,15 @@
 function main_sim() {
     btn_go = $("#simgobtn");
     console.log("Hello sim");
-    if(program === null){
-        Warn("Load a Program First!")
+    if(!is(program)|| !is(isa)){
+        Warn("Load a Program+ISA First!")
         btn_go.prop("disabled", true);
         return;
     }
     btn_go.removeAttr('disabled');
 }
 
-let sim_ticks = [];
+//let sim_ticks = [];
 const simdlanes=16;
 const simdunits=4;
 const wfSize = simdlanes * simdunits;
@@ -28,63 +28,110 @@ function getIsa(code){
 
 function registerDecode(reg){
     if(reg.startsWith("0x")){
-        return "NaR";
+        return {type:"constant",val:parseInt(reg)};
     }
     if(reg.startsWith("v")) {
         if (reg.indexOf(":") != -1){
-            return "vsplit"
+            return {type:"vsplit",val:-1};
         }
-        return "v";
+        return {type:"v",val:parseInt(reg.slice(1))};
     }
     if(reg.startsWith("s")) {
         if (reg.indexOf(":") != -1){
-            return "ssplit";
+            return {type:"ssplit",val:-1};
         }
-        return "s";
+        return {type:"s",val:parseInt(reg.slice(1))};
     }
-    return "idklol";
+    if(!isNaN(parseInt(reg))){
+        return {type:"constant",val:parseInt(reg)};
+    }
+    console.error("Can't decode register",reg);
+    return {type:"idklol",val:reg};
 }
 
+var globalTick = 0;
+var globalRegList = [];
+var globalSRegList = [];
+var globalVRegList = [];
 function Launchsim(){
-    //setup regs
-    let opcode = "";
-    let kernels = 1;
-    let cus = [];
-    for(let i =0; i < Math.ceil(kernels / wfSize); ++i){
-        cus.push(new ComputeUnit());
-    }
-    let not_finished = true;
-    let hh = 100;
-    while(not_finished && hh > 0) {
-        not_finished = false;
-        hh--;
-        for (let c of cus) {
-            not_finished |= c.tick();
+    try {
+        //setup regs
+        globalRegList = [];
+        globalSRegList = [];
+        globalVRegList = [];
+        let opcode = "";
+        let kernels = 1;
+        let cus = [];
+        for(let i =0; i < Math.ceil(kernels / wfSize); ++i){
+            cus.push(new ComputeUnit(i));
         }
+        console.log("Launching sim with CU:", cus.length);
+        let not_finished = true;
+        let tickcount = 0;
+        while(not_finished && tickcount < 100) {
+            $("#simstatus").text(tickcount + " / " + (program.kernel.asm.instructions.length - 1));
+            not_finished = false;
+            tickcount++;
+            globalTick = tickcount;
+            for (let c of cus) {
+                not_finished |= c.tick();
+            }
+        }
+        console.log("done");
+        calcStats();
+
+    }catch (e) {
+        console.error(e);
+        $("#simstatus").html("sim Error <br>"+JSON.stringify(e));
     }
-    console.log("done");
 }
 
-function tick(){
+function calcStats(){
+    let reglists = {Total:globalRegList,Scaler:globalSRegList,Vector:globalVRegList};
+    let ret = "";
+    for (let rl in reglists) {
+        let readregs = 0;
+        let writtenregs = 0;
+        let totalwrites = 0;
+        let rotalreads =0;
+        for (let r of reglists[rl]) {
+            if(r.reads.length > 0){readregs++;}
+            if(r.writes.length > 0){writtenregs++;}
+            totalwrites +=r.writes.length;
+            rotalreads += r.reads.length;
+        }
+        ret+="<p>"+rl+" registers written to: "+ writtenregs +
+            "<br>"+rl+" registers read from: "+ readregs +
+            "<br>"+rl+" register reads: "+ rotalreads +
+            "<br>"+rl+" register writes: "+ totalwrites + "</p>"
+    }
 
+
+    $("#simstatus").html(ret);
 }
-
 
 class ComputeUnit {
-    constructor() {
+    constructor(id) {
+        this.id = id;
         this.pc =0;
         this.sALU = 0;
         this.LDS = 0;
         this.vALUs = [];
         this.SGPR = [];
         this.done = false;
+        this.reads = [];
+        this.writes = [];
+        this.tickreads = [];
+        this.tickwrites = [];
+        this.lastTick = 0;
         for(let i =0; i < sgprs; ++i){
-            this.SGPR.push(new Register());
+            let r =new Register(id+'_sgpr_'+i);
+            globalSRegList.push(r)
+            this.SGPR.push(r);
         }
         for(let i =0; i < simdunits; ++i){
-            this.vALUs.push(new V_ALU(i));
+            this.vALUs.push(new V_ALU(id+'_'+i));
         }
-
     }
     get opcode() {
         return program.kernel.asm.instructions[this.pc].opcode;
@@ -94,8 +141,26 @@ class ComputeUnit {
     }
 
     writeTo(loc,what = 1){
-        console.log("write",loc);
-
+        let o = {tick:globalTick,loc:loc,what:what};
+        this.writes.push(o);
+        this.tickwrites.push(o);
+        let rd = registerDecode(loc);
+        if(rd.type === "s"){
+            this.SGPR[rd.val].read();
+        }else{
+            //TODO
+        }
+    }
+    readFrom(loc){
+        let o = {tick:globalTick,loc:loc};
+        this.reads.push(o);
+        this.tickreads.push(o);
+        let rd = registerDecode(loc);
+        if(rd.type === "s"){
+            this.SGPR[rd.val].read();
+        }else{
+            //TODO
+        }
     }
 
     tick() {
@@ -104,15 +169,32 @@ class ComputeUnit {
             console.log(this, "cu done");
             return false;
         }
-        let isa = getIsa(this.opcode);
-        console.log(this, "cu tick", this.opcode,isa );
-
-
-        //do writes
-        if(isa.w){
-            for (let w of isa.w) {
-             this.writeTo(this.operand[w]);
+        this.lastTick = globalTick;
+        this.tickreads = [];
+        this.tickwrites = [];
+        let isac = getIsa(this.opcode);
+        console.log(this.id, "cu tick",this,this.opcode,isac );
+        if(isac.type == "v"){
+            for(let s of this.vALUs){
+                s.tick(isac,this.opcode,this.operand);
+                this.tickreads.push(s.tickreads);
+                this.tickwrites.push(s.tickwrites);
             }
+            console.log(this.id, "v reads",this.tickreads ,"v writes",this.tickwrites);
+        }else{
+            //do reads
+            if(isac.r){
+                for (let r of isac.r) {
+                    this.readFrom(this.operand[r]);
+                }
+            }
+            //do writes
+            if(isac.w){
+                for (let w of isac.w) {
+                 this.writeTo(this.operand[w]);
+                }
+            }
+            console.log(this.id, "s reads",this.tickreads ,"s writes",this.tickwrites);
         }
 
         this.pc++;
@@ -124,25 +206,97 @@ class V_ALU {
     constructor(id) {
         this.id = id;
         this.lanes = [];
+        this.reads = [];
+        this.writes = [];
+        this.tickreads = [];
+        this.tickwrites = [];
         for(let i =0; i < simdlanes; ++i){
-            this.lanes.push(new V_ALU_lane(i));
+            this.lanes.push(new V_ALU_lane(id+'_'+i));
         }
     }
-    write(loc,what =1){
-        for (let w of simdlanes) {
-
+    tick(isac,opcode,operand){
+        this.tickreads = [];
+        this.tickwrites = [];
+        for(let l of this.lanes) {
+            l.tick(isac,opcode,operand);
+            this.tickreads.push(l.tickreads);
+            this.tickwrites.push(l.tickwrites);
         }
+        this.reads.push(this.tickreads);
+        this.writes.push(this.tickwrites);
+       // console.info(this.id, "reads",tickreads,"writes",tickwrites);
     }
 }
 
 class V_ALU_lane {
     constructor(id){
+        this.id = id;
         this.VGPR = [];
+        this.reads = [];
+        this.writes = [];
+        this.tickreads = [];
+        this.tickwrites = [];
+        this.lasttick = 0;
+        for(let i =0; i < vgprs; ++i){
+            let r = new Register(id+'_vgpr_'+i)
+            globalVRegList.push(r)
+            this.VGPR.push(r);
+        }
+    }
+    writeTo(loc,what = 1){
+        let o = {tick:globalTick,loc:loc,what:what};
+        this.writes.push(o);
+        this.tickwrites.push(o);
+        let rd = registerDecode(loc);
+        if(rd.type === "v"){
+            this.VGPR[rd.val].write(what);
+        }else{
+            //TODO
+        }
+    }
+    readFrom(loc){
+        let o = {tick:globalTick,loc:loc};
+        this.reads.push(o);
+        this.tickreads.push(o);
+        let rd = registerDecode(loc);
+        if(rd.type === "v"){
+            this.VGPR[rd.val].read();
+        }else{
+            //TODO
+        }
+    }
+    tick(isac,opcode,operand){
+        this.tickreads = [];
+        this.tickwrites = [];
+        this.lasttick = globalTick;
+        //do reads
+        if(isac.r){
+            for (let r of isac.r) {
+                this.readFrom(operand[r]);
+            }
+        }
+        //do writes
+        if(isac.w){
+            for (let w of isac.w) {
+                this.writeTo(operand[w]);
+            }
+        }
     }
 }
 
 class Register{
-    constructor(){
+    constructor(id = "unnamed"){
         this.value = 0;
+        this.reads = [];
+        this.writes = [];
+        this.id = id;
+        globalRegList.push(this);
+    }
+    read(){
+        this.reads.push(globalTick);
+
+    }
+    write(data = 1){
+        this.writes.push(globalTick);
     }
 }

@@ -3,7 +3,6 @@ var div_kernel_asm;
 var div_coderow;
 var div_statsrow;
 var btn_diss;
-var isa;
 var show_regs = true;
 var simplifyConstants = true;
 
@@ -27,7 +26,7 @@ function main_asm(){
 }
 
 function startup() {
-    if(program === null){
+    if(!is(program)){
         Warn("Load a Program First!")
         btn_diss.prop("disabled", true);
         return;

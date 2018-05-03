@@ -4,6 +4,9 @@
 Kernels: <input name="alunch_kernels" type="number" min="0" max="64" value="64" step="1">
 <button id="simgobtn" type="button" class="btn btn-secondary" onclick="Launchsim()">GO
 </button>
+<br>
+<span id="simstatus"></span>
+<span id="simresults"></span>
 <script>
     var url = "js/page_sim.js";
     $.getScript(url).done(function () {
