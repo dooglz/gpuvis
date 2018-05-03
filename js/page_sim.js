@@ -27,18 +27,27 @@ function getIsa(code){
 }
 
 function registerDecode(reg){
+    let split = function(reg){
+        let m = reg.indexOf(":");
+        let l = reg.indexOf("[");
+        let r = reg.indexOf("]");
+        let low = parseInt(reg.slice(l+1,m));
+        let high = parseInt(reg.slice(m+1,r));
+        return Array((high-low)+1).fill().map((e,i)=>i+low);
+    }
+
     if(reg.startsWith("0x")){
         return {type:"constant",val:parseInt(reg)};
     }
     if(reg.startsWith("v")) {
         if (reg.indexOf(":") != -1){
-            return {type:"vsplit",val:-1};
+            return {type:"vsplit",val:split(reg)};
         }
         return {type:"v",val:parseInt(reg.slice(1))};
     }
     if(reg.startsWith("s")) {
         if (reg.indexOf(":") != -1){
-            return {type:"ssplit",val:-1};
+            return {type:"ssplit",val:split(reg)};
         }
         return {type:"s",val:parseInt(reg.slice(1))};
     }
@@ -78,7 +87,7 @@ function Launchsim(){
             }
         }
         console.log("done");
-        calcStats();
+        calcStats(cus.length);
 
     }catch (e) {
         console.error(e);
@@ -86,8 +95,10 @@ function Launchsim(){
     }
 }
 
-function calcStats(){
+function calcStats(cuCount){
     let reglists = {Total:globalRegList,Scaler:globalSRegList,Vector:globalVRegList};
+    let totals = {Scaler:cuCount*sgprs,Vector:cuCount*simdunits*simdlanes*vgprs}
+    totals.Total=totals.Scaler + totals.Vector;
     let ret = "";
     for (let rl in reglists) {
         let readregs = 0;
@@ -100,14 +111,14 @@ function calcStats(){
             totalwrites +=r.writes.length;
             rotalreads += r.reads.length;
         }
-        ret+="<p>"+rl+" registers written to: "+ writtenregs +
-            "<br>"+rl+" registers read from: "+ readregs +
+        ret+="<p>"+rl+" registers written to: "+ writtenregs +" / " + totals[rl] +
+            "<br>"+rl+" registers read from: "+ readregs +" / " + totals[rl] +
             "<br>"+rl+" register reads: "+ rotalreads +
             "<br>"+rl+" register writes: "+ totalwrites + "</p>"
     }
 
 
-    $("#simstatus").html(ret);
+    $("#simresults").html(ret);
 }
 
 class ComputeUnit {
@@ -146,7 +157,11 @@ class ComputeUnit {
         this.tickwrites.push(o);
         let rd = registerDecode(loc);
         if(rd.type === "s"){
-            this.SGPR[rd.val].read();
+            this.SGPR[rd.val].write(what);
+        }else if(rd.type === "ssplit"){
+            for(let r of rd.val){
+                this.SGPR[r].write(what);
+            }
         }else{
             //TODO
         }
@@ -158,6 +173,10 @@ class ComputeUnit {
         let rd = registerDecode(loc);
         if(rd.type === "s"){
             this.SGPR[rd.val].read();
+        }else if(rd.type === "ssplit"){
+            for(let r of rd.val){
+                this.SGPR[r].read();
+            }
         }else{
             //TODO
         }
@@ -174,14 +193,14 @@ class ComputeUnit {
         this.tickwrites = [];
         let isac = getIsa(this.opcode);
         console.log(this.id, "cu tick",this,this.opcode,isac );
-        if(isac.type == "v"){
+        if(isac.type === "v" || isac.type === "flat"){
             for(let s of this.vALUs){
                 s.tick(isac,this.opcode,this.operand);
                 this.tickreads.push(s.tickreads);
                 this.tickwrites.push(s.tickwrites);
             }
             console.log(this.id, "v reads",this.tickreads ,"v writes",this.tickwrites);
-        }else{
+        }else if(isac.type === "s"){
             //do reads
             if(isac.r){
                 for (let r of isac.r) {
@@ -195,6 +214,8 @@ class ComputeUnit {
                 }
             }
             console.log(this.id, "s reads",this.tickreads ,"s writes",this.tickwrites);
+        }else{
+            console.error(isac.type);
         }
 
         this.pc++;
@@ -250,6 +271,10 @@ class V_ALU_lane {
         let rd = registerDecode(loc);
         if(rd.type === "v"){
             this.VGPR[rd.val].write(what);
+        }else if(rd.type === "vsplit"){
+           for(let r of rd.val){
+               this.VGPR[r].write(what);
+           }
         }else{
             //TODO
         }
@@ -261,6 +286,10 @@ class V_ALU_lane {
         let rd = registerDecode(loc);
         if(rd.type === "v"){
             this.VGPR[rd.val].read();
+        }else if(rd.type === "vsplit"){
+            for(let r of rd.val){
+                this.VGPR[r].read();
+            }
         }else{
             //TODO
         }
