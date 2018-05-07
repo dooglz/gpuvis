@@ -315,3 +315,28 @@ body {
 pre {
     max-height: 800px;
 }
+.simres{
+    min-width: 275px;
+    max-width: 275px;
+}
+.viscontainer {
+    background-color: floralwhite;
+    flex-grow: 1 ;  /* allows the column to grow*/
+    max-width: 100%; /*bootstraps max-width from col-1 is 100%/12. We increase it to allow growth. */
+    /*if we had used col-6 like usually max width would be 100%/12*6 = 50% */
+    height: 80vh;
+}
+
+
+.computeUnit > rect{
+    fill: darkturquoise;
+}
+.computeUnit.used > rect{
+    fill: chartreuse;
+}
+.computeUnit.used > rect:hover {
+    stroke:black;
+    stroke-width:5px;
+}
+
+

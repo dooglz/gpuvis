@@ -5,11 +5,22 @@ Kernels: <input name="alunch_kernels" type="number" min="0" max="64" value="64" 
 <button id="simgobtn" type="button" class="btn btn-secondary" onclick="Launchsim()">GO
 </button>
 <br>
-<span id="simstatus"></span>
-<span id="simresults"></span>
 <script>
     var url = "js/page_sim.js";
     $.getScript(url).done(function () {
-        main_sim();
+        $.getScript("js/page_sim_vis.js").done(function () {
+            main_sim();
+        });
     });
 </script>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-3 simres">
+            <span id="simstatus"></span>
+            <span id="simresults"></span>
+        </div>
+        <div class="col-1 viscontainer" id="viscontainer"></div>
+    </div>
+</div>
+
+

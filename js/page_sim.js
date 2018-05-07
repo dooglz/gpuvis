@@ -1,12 +1,14 @@
 function main_sim() {
     btn_go = $("#simgobtn");
     console.log("Hello sim");
+    initvis();
     if(!is(program)|| !is(isa)){
         Warn("Load a Program+ISA First!")
         btn_go.prop("disabled", true);
         return;
     }
     btn_go.removeAttr('disabled');
+
 }
 
 //let sim_ticks = [];
@@ -67,7 +69,8 @@ var globalUnknownWrites =0;
 var globalUnknownReads =0;
 var globalVIdleTicks = 0;
 var globalVWorkTicks = 0;
-
+var usedCUs =0;
+var occupancy = [];
 function Launchsim(){
     try {
         //setup regs
@@ -83,6 +86,7 @@ function Launchsim(){
         for(let i =0; i < Math.ceil(kernels / wfSize); ++i){
             cus.push(new ComputeUnit(i));
         }
+        usedCUs = cus.length;
         console.log("Launching sim with CU:", cus.length);
         let not_finished = true;
         let tickcount = 0;
@@ -97,7 +101,7 @@ function Launchsim(){
         }
         console.log("done");
         calcStats(cus.length);
-
+        updateGPUVis();
     }catch (e) {
         console.error(e);
         $("#simstatus").html("sim Error <br>"+JSON.stringify(e));
@@ -133,6 +137,7 @@ function calcStats(cuCount){
         "<br>Local Occupancy: " + sigFigs((globalVWorkTicks/(globalVWorkTicks+globalVIdleTicks))*100,4)+'%'+
         "<br>Global Occupancy: " + sigFigs((globalVWorkTicks/((globalVWorkTicks+globalVIdleTicks)*cus))*100,4)+ "%</p>";
 
+    occupancy[0] = (globalVWorkTicks/(globalVWorkTicks+globalVIdleTicks));
     $("#simresults").html(ret);
 }
 
