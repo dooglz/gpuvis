@@ -18,6 +18,17 @@ Kernels: <input name="alunch_kernels" type="number" min="0" max="64" value="64" 
         <div class="col-3 simres">
             <span id="simstatus"></span>
             <span id="simresults"></span>
+            <div id="simctrl">
+                <hr>
+                <span id="simseek">Cycle:0</span>
+                <div class="btn-group" id="simctrlbtns">
+                    <a class="btn" href="#" id="simseekstart"><i class="fas fa-angle-double-left"></i></a>
+                    <a class="btn" href="#" id="simseekback"><i class="fas fa-angle-left"></i></a>
+                    <a class="btn" href="#" id="simseeknext"><i class="fas fa-angle-right"></i></a>
+                    <a class="btn" href="#" id="simseekend"><i class="fas fa-angle-double-right"></i></a>
+                </div>
+                <hr>
+            </div>
         </div>
         <div class="col-1 viscontainer" id="viscontainer"></div>
     </div>

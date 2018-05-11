@@ -315,28 +315,88 @@ body {
 pre {
     max-height: 800px;
 }
-.simres{
+
+.simres {
     min-width: 275px;
     max-width: 275px;
 }
+
 .viscontainer {
     background-color: floralwhite;
-    flex-grow: 1 ;  /* allows the column to grow*/
+    flex-grow: 1; /* allows the column to grow*/
     max-width: 100%; /*bootstraps max-width from col-1 is 100%/12. We increase it to allow growth. */
     /*if we had used col-6 like usually max width would be 100%/12*6 = 50% */
     height: 80vh;
 }
 
+.computeUnit > rect {
+    fill: #009FB7;
+}
 
-.computeUnit > rect{
-    fill: darkturquoise;
+.computeUnit.used > rect {
+    fill: #39FF14;
 }
-.computeUnit.used > rect{
-    fill: chartreuse;
-}
+
 .computeUnit.used > rect:hover {
-    stroke:black;
-    stroke-width:5px;
+    stroke: black;
+    stroke-width: 5px;
 }
+
+.actualComputeUnit > rect {
+    fill: #AFACBF;
+}
+
+.lds > rect {
+    fill: #FED766;
+}
+
+.l1c > rect {
+    fill: #FED766;
+}
+
+.bmu > rect {
+    fill: #C31368;
+}
+
+.scheduler > rect {
+    fill: #C31368;
+}
+
+.tu > rect {
+    fill: #C31368;
+}
+
+.salu > rect {
+    stroke: black;
+    stroke-width: 5px;
+}
+
+.sgpr > rect {
+    fill: #FED766;
+}
+
+.valu > rect {
+    fill: #FED766;
+}
+
+.lane > rect {
+    fill: #009FB7;
+}
+
+.vgpr > rect {
+    fill: #FED766;
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
