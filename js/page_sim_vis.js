@@ -7,6 +7,111 @@ var sch = 0;
 var schw = 0;
 var schh = 0;
 
+let layout = {
+    w: 1.0,
+    h: 1.0,
+    margin: 0,
+    contains: {
+        toprow: {
+            margin: 0,
+            w: 1.0,
+            h: 0.1,
+            contains: {}
+        },
+        bottomrow: {
+            margin: 0,
+            w: 1.0,
+            h: 0.9,
+            contains: {
+                computeUnitOverview: {
+                    w: 1.0,
+                    h: 1.0,
+                    x:0,
+                    y:0,
+                    contains: {}
+                },
+                computeUnit: {
+                    w: 1.0,
+                    h: 1.0,
+                    x:0,
+                    y:0,
+                    visibility: "hidden",
+                    layout: "horizontal",
+                    contains: {
+                        cuNonSimContainer: {
+                            w: 0.1,
+                            h: 1.0,
+                            contains: {
+                                LDS: {
+                                    w: 1.0,
+                                    h: 0.2
+                                },
+                                L1Cache: {
+                                    w: 1.0,
+                                    h: 0.2
+                                },
+                                BMU: {
+                                    w: 1.0,
+                                    h: 0.2
+                                },
+                                Scheduler: {
+                                    w: 1.0,
+                                    h: 0.2
+                                },
+                                TextureUnit: {
+                                    w: 1.0,
+                                    h: 0.2
+                                }
+                            }
+                        },
+                        cuScalerContainer: {
+                            w: 0.1,
+                            h: 0.5,
+                            contains: {
+                                SALU: {
+                                    w: 1.0,
+                                    h: 1.0,
+                                    contains: {
+                                        SGPR: {
+                                            w: 1.0,
+                                            h: 0.5,
+                                            float: "bottom"
+                                        }
+                                    }
+                                },
+                            }
+                        },
+                        cuSIMDContainer: {
+                            w: 0.8,
+                            h: 1.0,
+                            contains: {
+                                SIMDUnit: {
+                                    w: 1.0,
+                                    h: 1.0,
+                                    contains: {
+                                        SIMDLane: {
+                                            w: 1.0,
+                                            h: 0.5,
+                                            float: "bottom",
+                                            contains: {
+                                                SIMDVGPR: {
+                                                    w: 1.0,
+                                                    h: 0.5
+                                                }
+                                            }
+                                        },
+                                    }
+                                },
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+};
+
+
 function initvis() {
     dcon = d3.select("#viscontainer");
     $con = $("#viscontainer")
@@ -15,7 +120,7 @@ function initvis() {
     schw = 0.5 * scw;
     schh = 0.5 * sch;
     svgcon = dcon.append("svg").attr("width", scw).attr("height", sch);
-    buildGPU();
+    buildGPU2();
 }
 
 var d_cus = [];
@@ -23,6 +128,64 @@ var cuscon;
 var cucon;
 var toprow;
 var bottomrow;
+
+var svgtree;
+
+function recursiveLayouter(name, e, parent, offsetX, offsetY) {
+    console.log("layout ", name, e, parent, offsetX, offsetY);
+
+    //build Me
+
+    let w = Math.floor((e.w ? e.w : 1.0) * parseInt(parent.attr("width"))),
+        h = Math.floor((e.h ? e.h : 1.0) * parseInt(parent.attr("height"))),
+        x = is(e.x) ? e.x : offsetX,
+        y = is(e.y) ? e.y : offsetY;
+
+    let me = parent.append("g")
+        .attr("width", w)
+        .attr("height", h)
+        .attr("transform", "translate(" + x + "," + y + ")")
+
+    me.attr("id", name).classed(name, true);
+    me.append("rect").attr("width", w).attr("height", h)
+        .attr("fill", "#" + ((1 << 24) * Math.random() | 0).toString(16));
+    let margin = is(e.margin) ? e.margin : 0.05;
+
+    w = Math.floor((1.0 - margin) * w);
+    h = Math.floor((1.0 - margin) * h);
+    x = Math.floor((w - ((1.0 - margin) * w)) / 2);
+    y = Math.floor((h - ((1.0 - margin) * h)) / 2);
+    console.log(w, h, x, y);
+    let container = me.append("g")
+        .attr("width", w)
+        .attr("height", h)
+        .attr("transform", "translate(" + x + "," + y + ")")
+
+    let layout = is(e.layout) ? e.layout : "vertical";
+    if (is(e.contains)) {
+        let childCount = Object.keys(e.contains);
+        let iofx = 0;
+        let iofy = 0;
+        for (let c in e.contains) {
+            console.log("start ",c);
+            let child = recursiveLayouter(c, e.contains[c], container, iofx, iofy);
+            if(layout == "vertical"){
+                iofy += parseInt(child.attr("height"));
+            }else {
+                iofx += parseInt(child.attr("width"));
+            }
+            console.log("end ",c);
+        }
+    }
+    return me;
+
+}
+
+function buildGPU2() {
+    recursiveLayouter("root", layout, svgcon, 0, 0);
+
+}
+
 
 function buildGPU() {
     d_cus = [];
@@ -79,7 +242,7 @@ function buildGPU() {
         d_cus.push(g);
     }
 
-    cucon = ghelper(svgcon, "actualComputeUnit", "Compute Unit", 0, toprow, scw, bottomrow).attr("visibility", "hidden ").on("click", nop);
+    cucon = ghelper(svgcon, "actualComputeUnit", "Compute Unit", 0, toprow, scw, bottomrow).attr("visibility", "hidden ").on("click", nope);
     gap = bottomrow / 5.2;
     let things = [["lds", "LDS"], ["l1c", "L1 Cache"], ["bmu", "Branch & Msg Unit"], ["scheduler", "Scheduler"], ["tu", "Texture Units"]];
     for (let i = 0; i < things.length; i++) {
@@ -137,7 +300,7 @@ function zoom(d) {
 
 }
 
-function nop() {
+function nope() {
     console.log("nop");
     d3.event.stopPropagation();
 }
@@ -173,12 +336,11 @@ function wrap(text, width) {
             lineHeight = 1.1, // ems
             x = text.attr("x"),
             y = text.attr("y"),
-            dy = 0, //parseFloat(text.attr("dy")),
             tspan = text.text(null)
                 .append("tspan")
                 .attr("x", x)
                 .attr("y", y)
-                .attr("dy", dy + "em");
+                .attr("dy", "0em");
         while (word = words.pop()) {
             line.push(word);
             tspan.text(line.join(" "));
@@ -189,7 +351,7 @@ function wrap(text, width) {
                 tspan = text.append("tspan")
                     .attr("x", x)
                     .attr("y", y)
-                    .attr("dy", ++lineNumber * lineHeight + dy + "em")
+                    .attr("dy", ++lineNumber * lineHeight + "em")
                     .text(word);
             }
         }

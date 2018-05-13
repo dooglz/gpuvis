@@ -8,7 +8,7 @@ function main_sim() {
         return;
     }
     btn_go.removeAttr('disabled');
-
+    LoadCallback();
 }
 
 //let sim_ticks = [];

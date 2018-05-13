@@ -23,6 +23,7 @@ function main_asm(){
         .fail(function () {
             console.error("Can't get isa!");
         });
+    LoadCallback();
 }
 
 function startup() {
