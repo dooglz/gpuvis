@@ -14,6 +14,14 @@ d3.selection.prototype.size = function () {
     });
     return n;
 };
+d3.selection.prototype.children = function (d) {
+    var that = this.node();
+    return this
+        .selectAll(d)
+        .filter(function () {
+            return that == this.parentNode;
+        });
+};
 
 let layout = {
     w: 1.0,
@@ -162,7 +170,8 @@ var bottomrow;
 function recursiveLayouter(name, e, parent, offsetX, offsetY, me) {
     console.log("layout ", name, e, parent, offsetX, offsetY, me);
     let copies = 1;
-    let parentLayout = is(parent.layout) ? parent.layout : "vertical";
+    let parentLayout = is(parent.attr("layout")) ? parent.attr("layout") : "vertical";
+    let layout = is(e.layout) ? e.layout : "vertical";
     if (!is(me)) {
         //am I already here?
         me = parent.selectAll('#' + name);
@@ -179,6 +188,7 @@ function recursiveLayouter(name, e, parent, offsetX, offsetY, me) {
             copies = me.size();
         }
     }
+    me.attr("layout", layout);
 
     let w, h, x, y;
     if (copies === 1) {
@@ -222,6 +232,7 @@ function recursiveLayouter(name, e, parent, offsetX, offsetY, me) {
             .attr("fill", () => {
                 return ("#" + ((1 << 24) * Math.random() | 0).toString(16))
             });
+        rect.lower()
     });
 
     let margin = is(e.margin) ? e.margin : 0.05;
@@ -235,8 +246,9 @@ function recursiveLayouter(name, e, parent, offsetX, offsetY, me) {
         let mme = d3.select(c[b]);
         let container = mme.select("g");
         container = container.empty() ? mme.append("g") : container;
-
+        container.attr("layout", layout);
         container
+            .classed(name + "_container", true)
             .attr("width", w)
             .attr("height", h);
 
@@ -252,7 +264,6 @@ function recursiveLayouter(name, e, parent, offsetX, offsetY, me) {
     });
 
 
-    let layout = is(e.layout) ? e.layout : "vertical";
     if (is(e.contains)) {
         let childCount = Object.keys(e.contains);
         me.each((a, iter, nodes) => {
@@ -274,33 +285,54 @@ function recursiveLayouter(name, e, parent, offsetX, offsetY, me) {
     return me;
 }
 
+var cooltimer;
+
+function cool() {
+    cooltimer = setInterval(() => {
+        d3.selectAll("#SIMDVGPR rect").transition().attr("fill", () => {
+            return ("#" + ((1 << 24) * Math.random() | 0).toString(16))
+        });
+    }, 200);
+
+}
+
 var d3data = {
     simdunits: [
-        {id: 0, lanes: [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]},
-        {id: 1, lanes: [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]},
-        {id: 2, lanes: [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]},
-        {id: 3, lanes: [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]}
+        {id: 0, lanes: [{id: 0}, {id: 1}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]},
+        {id: 1, lanes: [{id: 0}, {id: 1}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]},
+        {id: 2, lanes: [{id: 0}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]},
+        {id: 3, lanes: [{id: 0}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]}
     ]
 };
+var su1, suc, sm1;
 
 function buildGPU2() {
     recursiveLayouter("root", layout, svgcon, 0, 0);
     console.log("data bind");
     let con = d3.select("#cuSIMDContainer").select("g");
-    let simdunits = con.selectAll("#SIMDUnit")
+
+    d3.selectAll("#SIMDUnit").remove();
+
+    su1 = con.selectAll("#SIMDUnit")
         .data(d3data.simdunits)
-        .enter().append("g").attr("id", "SIMDUnit").append("g");
-    simdunits.selectAll("#SIMDLane")
-        .data((d)=>{ return d.lanes;})
+        .enter().append("g").attr("id", "SIMDUnit").append("g").attr("id", "SIMDUnit_container");
+
+    suc = su1.selectAll(".SIMDUnit_container")
+        .data(function (d) {
+            console.error(0, d, this);
+            return [d];
+        })
+        .enter().append("g").classed("SIMDUnit_container", true);
+
+    sm1 = suc.selectAll("#SIMDLane")
+        .data(function (d) {
+            console.error(1, d, this);
+            return d.lanes;
+        })
         .enter().append("g").attr("id", "SIMDLane");
 
-    //    .call((sel) => {
-    //        recursiveLayouter("SIMDUnit", layoutleafs.SIMDUnit, con, 0, 0, sel);
-    //     })
-    //   newSimd.append("rect");
-    // newSimd.append("g");
-    // .each((d,ind,list)=>{recursiveLayouter("SIMDUnit", layoutleafs.SIMDUnit,con,0,0,list[ind]);})
-    // .call((a,b,c,d)=>{ggb = a;})
+    su1.exit().remove();
+    sm1.exit().remove();
 
     console.log("bind done");
     d3.selectAll("#SIMDUnit");
