@@ -7,6 +7,14 @@ var sch = 0;
 var schw = 0;
 var schh = 0;
 
+d3.selection.prototype.size = function () {
+    var n = 0;
+    this.each(function () {
+        ++n;
+    });
+    return n;
+};
+
 let layout = {
     w: 1.0,
     h: 1.0,
@@ -26,15 +34,15 @@ let layout = {
                 computeUnitOverview: {
                     w: 1.0,
                     h: 1.0,
-                    x:0,
-                    y:0,
+                    x: 0,
+                    y: 0,
                     contains: {}
                 },
                 computeUnit: {
                     w: 1.0,
                     h: 1.0,
-                    x:0,
-                    y:0,
+                    x: 0,
+                    y: 0,
                     visibility: "hidden",
                     layout: "horizontal",
                     contains: {
@@ -88,10 +96,11 @@ let layout = {
                                 SIMDUnit: {
                                     w: 1.0,
                                     h: 1.0,
+                                    layout: "horizontal",
                                     contains: {
                                         SIMDLane: {
                                             w: 1.0,
-                                            h: 0.5,
+                                            h: 1.0,
                                             float: "bottom",
                                             contains: {
                                                 SIMDVGPR: {
@@ -110,6 +119,27 @@ let layout = {
         }
     }
 };
+let layoutleafs = {};
+
+function getLeafs(a) {
+    for (k in a.contains) {
+        layoutleafs[k] = a.contains[k];
+        getLeafs(a.contains[k]);
+    }
+}
+
+getLeafs(layout);
+
+//t layoutleafs={
+//  toprow:layout.contains.toprow,
+//  bottomrow:layout.contains.bottomrow,
+//  computeUnitOverview:this.bottomrow.contains.computeUnitOverview,
+//  computeUnit:this.bottomrow.contains.computeUnit,
+//  cuNonSimContainer:this.computeUnit.contains.cuNonSimContainer,
+//  cuScalerContainer:this.computeUnit.contains.cuScalerContainer,
+//  cuSIMDContainer:this.computeUnit.contains.cuSIMDContainer,
+//  SIMDUnit:this.cuSIMDContainer.contains.SIMDUnit
+//
 
 
 function initvis() {
@@ -129,61 +159,152 @@ var cucon;
 var toprow;
 var bottomrow;
 
-var svgtree;
+function recursiveLayouter(name, e, parent, offsetX, offsetY, me) {
+    console.log("layout ", name, e, parent, offsetX, offsetY, me);
+    let copies = 1;
+    let parentLayout = is(parent.layout) ? parent.layout : "vertical";
+    if (!is(me)) {
+        //am I already here?
+        me = parent.selectAll('#' + name);
+        if (me.size() === 0) {
+            //no,
+            me = parent.append("g");
+        } else if (me.size() === 1) {
+            //I'm already here
 
-function recursiveLayouter(name, e, parent, offsetX, offsetY) {
-    console.log("layout ", name, e, parent, offsetX, offsetY);
+            console.info("reuse");
+        } else {
+            //I'm already here, and a few more of me
+            console.log("multiple!", me);
+            copies = me.size();
+        }
+    }
 
-    //build Me
-
-    let w = Math.floor((e.w ? e.w : 1.0) * parseInt(parent.attr("width"))),
-        h = Math.floor((e.h ? e.h : 1.0) * parseInt(parent.attr("height"))),
-        x = is(e.x) ? e.x : offsetX,
+    let w, h, x, y;
+    if (copies === 1) {
+        w = Math.floor((e.w ? e.w : 1.0) * parseInt(parent.attr("width")));
+        h = Math.floor((e.h ? e.h : 1.0) * parseInt(parent.attr("height")));
+        x = is(e.x) ? e.x : offsetX;
         y = is(e.y) ? e.y : offsetY;
+    } else {
+        let ow = Math.floor((e.w ? e.w : 1.0) * parseInt(parent.attr("width")));
+        let oh = Math.floor((e.h ? e.h : 1.0) * parseInt(parent.attr("height")));
+        if (parentLayout === "vertical") {
+            w = ow;
+            h = oh / copies;
+        } else {
+            w = ow / copies;
+            h = oh;
+        }
+        x = is(e.x) ? e.x : offsetX;
+        y = is(e.y) ? e.y : offsetY;
+    }
 
-    let me = parent.append("g")
-        .attr("width", w)
-        .attr("height", h)
-        .attr("transform", "translate(" + x + "," + y + ")")
+    me.attr("width", w).attr("height", h);
+
+    if (parentLayout === "vertical") {
+        me.attr("transform", (d, itr, sel) => {
+            return "translate(" + x + "," + (y + (itr * h)) + ")"
+        });
+    } else {
+        me.attr("transform", (d, itr, sel) => {
+            return "translate(" + (x + (itr * w)) + "," + y + ")"
+        });
+    }
+
 
     me.attr("id", name).classed(name, true);
-    me.append("rect").attr("width", w).attr("height", h)
-        .attr("fill", "#" + ((1 << 24) * Math.random() | 0).toString(16));
+    me.each((a, b, c) => {
+        let mme = d3.select(c[b]);
+        let rect = mme.select("rect");
+        rect = rect.empty() ? mme.append("rect") : rect;
+        rect.attr("width", w).attr("height", h)
+            .attr("fill", () => {
+                return ("#" + ((1 << 24) * Math.random() | 0).toString(16))
+            });
+    });
+
     let margin = is(e.margin) ? e.margin : 0.05;
 
     w = Math.floor((1.0 - margin) * w);
     h = Math.floor((1.0 - margin) * h);
     x = Math.floor((w - ((1.0 - margin) * w)) / 2);
     y = Math.floor((h - ((1.0 - margin) * h)) / 2);
-    console.log(w, h, x, y);
-    let container = me.append("g")
-        .attr("width", w)
-        .attr("height", h)
-        .attr("transform", "translate(" + x + "," + y + ")")
+    //console.log(w, h, x, y);
+    me.each((a, b, c) => {
+        let mme = d3.select(c[b]);
+        let container = mme.select("g");
+        container = container.empty() ? mme.append("g") : container;
+
+        container
+            .attr("width", w)
+            .attr("height", h);
+
+        if (parentLayout === "vertical") {
+            container.attr("transform", (d, itr, sel) => {
+                return "translate(" + x + "," + (y + (itr * h)) + ")"
+            });
+        } else {
+            container.attr("transform", (d, itr, sel) => {
+                return "translate(" + (x + (itr * w)) + "," + y + ")"
+            });
+        }
+    });
+
 
     let layout = is(e.layout) ? e.layout : "vertical";
     if (is(e.contains)) {
         let childCount = Object.keys(e.contains);
-        let iofx = 0;
-        let iofy = 0;
-        for (let c in e.contains) {
-            console.log("start ",c);
-            let child = recursiveLayouter(c, e.contains[c], container, iofx, iofy);
-            if(layout == "vertical"){
-                iofy += parseInt(child.attr("height"));
-            }else {
-                iofx += parseInt(child.attr("width"));
+        me.each((a, iter, nodes) => {
+            let iofx = 0;
+            let iofy = 0;
+            for (let c in e.contains) {
+
+                let mme = d3.select(nodes[iter]);
+                let container = mme.select("g");
+                let child = recursiveLayouter(c, e.contains[c], container, iofx, iofy);
+                if (layout === "vertical") {
+                    iofy += parseInt(child.attr("height"));
+                } else {
+                    iofx += parseInt(child.attr("width"));
+                }
             }
-            console.log("end ",c);
-        }
+        });
     }
     return me;
-
 }
+
+var d3data = {
+    simdunits: [
+        {id: 0, lanes: [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]},
+        {id: 1, lanes: [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]},
+        {id: 2, lanes: [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]},
+        {id: 3, lanes: [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]}
+    ]
+};
 
 function buildGPU2() {
     recursiveLayouter("root", layout, svgcon, 0, 0);
+    console.log("data bind");
+    let con = d3.select("#cuSIMDContainer").select("g");
+    let simdunits = con.selectAll("#SIMDUnit")
+        .data(d3data.simdunits)
+        .enter().append("g").attr("id", "SIMDUnit").append("g");
+    simdunits.selectAll("#SIMDLane")
+        .data((d)=>{ return d.lanes;})
+        .enter().append("g").attr("id", "SIMDLane");
 
+    //    .call((sel) => {
+    //        recursiveLayouter("SIMDUnit", layoutleafs.SIMDUnit, con, 0, 0, sel);
+    //     })
+    //   newSimd.append("rect");
+    // newSimd.append("g");
+    // .each((d,ind,list)=>{recursiveLayouter("SIMDUnit", layoutleafs.SIMDUnit,con,0,0,list[ind]);})
+    // .call((a,b,c,d)=>{ggb = a;})
+
+    console.log("bind done");
+    d3.selectAll("#SIMDUnit");
+    recursiveLayouter("root", layout, svgcon, 0, 0);
 }
 
 
