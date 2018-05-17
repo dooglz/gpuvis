@@ -329,61 +329,66 @@ pre {
     height: 80vh;
 }
 
-.computeUnit > rect {
+rect {
+    stroke: black;
+    stroke-width: 1px;
+}
+
+.computeUnitAvatar > rect {
     fill: #009FB7;
 }
 
-.computeUnit.used > rect {
+.computeUnitAvatar.used > rect {
     fill: #39FF14;
 }
 
-.computeUnit.used > rect:hover {
+.computeUnitAvatar.used > rect:hover {
     stroke: black;
     stroke-width: 5px;
 }
 
-.actualComputeUnit > rect {
+.computeUnit > rect {
     fill: #AFACBF;
 }
 
-.lds > rect {
+.LDS > rect {
     fill: #FED766;
 }
 
-.l1c > rect {
+.L1Cache > rect {
     fill: #FED766;
 }
 
-.bmu > rect {
+.BMU > rect {
     fill: #C31368;
 }
 
-.scheduler > rect {
+.Scheduler > rect {
     fill: #C31368;
 }
 
-.tu > rect {
+.TextureUnit > rect {
     fill: #C31368;
 }
 
-.salu > rect {
+.SALU > rect {
     stroke: black;
     stroke-width: 5px;
 }
 
-.sgpr > rect {
+.SGPR > rect {
     fill: #FED766;
 }
 
-.valu > rect {
+.SIMDUnit > rect {
     fill: #FED766;
 }
 
-.lane > rect {
+.SIMDLane > rect {
     fill: #009FB7;
 }
 
-.vgpr > rect {
+.SIMDVGPR > rect {
     fill: #FED766;
 }
 

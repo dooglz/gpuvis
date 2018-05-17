@@ -262,9 +262,9 @@ function recursiveLayouter(name, e, parent, offsetX, offsetY, me) {
         let rect = mme.select("rect");
         rect = rect.empty() ? mme.append("rect") : rect;
         rect.attr("width", w).attr("height", h)
-            .attr("fill", () => {
+          /*  .attr("fill", () => {
                 return ("#" + ((1 << 24) * Math.random() | 0).toString(16))
-            });
+            }); */
         rect.lower()
     });
 
@@ -524,10 +524,10 @@ function reset() {
 
 
 function updateGPUVis() {
-    cuscon.selectAll(".computeUnit").classed("used", function (d, i) {
+    d3.selectAll(".computeUnitAvatar").classed("used", function (d, i) {
         return i < usedCUs;
     });
-    cuscon.selectAll(".used > text").append('tspan')
+    d3.selectAll(".used > text").append('tspan')
         .attr('dy', '.9em').text(function (d, i) {
         return (occupancy[i] * 100)
     });
