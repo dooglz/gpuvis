@@ -39,13 +39,6 @@ let layout = {
             w: 1.0,
             h: 0.9,
             contains: {
-                computeUnitOverview: {
-                    w: 1.0,
-                    h: 1.0,
-                    x: 0,
-                    y: 0,
-                    contains: {}
-                },
                 computeUnit: {
                     w: 1.0,
                     h: 1.0,
@@ -122,7 +115,20 @@ let layout = {
                             }
                         }
                     }
-                }
+                },
+                computeUnitOverview: {
+                    w: 1.0,
+                    h: 1.0,
+                    x: 0,
+                    y: 0,
+                    layout: "bestfit",
+                    contains: {
+                        computeUnitAvatar: {
+                            w: 1.0,
+                            h: 1.0
+                        }
+                    }
+                },
             }
         }
     }
@@ -168,10 +174,11 @@ var toprow;
 var bottomrow;
 
 function recursiveLayouter(name, e, parent, offsetX, offsetY, me) {
-    console.log("layout ", name, e, parent, offsetX, offsetY, me);
+    // console.log("layout ", name, e, parent, offsetX, offsetY, me);
     let copies = 1;
     let parentLayout = is(parent.attr("layout")) ? parent.attr("layout") : "vertical";
     let layout = is(e.layout) ? e.layout : "vertical";
+    let visibility = is(e.visibility) ? e.visibility : "inherit";
     if (!is(me)) {
         //am I already here?
         me = parent.selectAll('#' + name);
@@ -184,13 +191,15 @@ function recursiveLayouter(name, e, parent, offsetX, offsetY, me) {
             console.info("reuse");
         } else {
             //I'm already here, and a few more of me
-            console.log("multiple!", me);
+            console.log("multiple!", me, me.size());
             copies = me.size();
         }
     }
     me.attr("layout", layout);
+    me.attr("visibility", visibility);
 
-    let w, h, x, y;
+    let w, h, x, y, collumncount;
+    collumncount = 1;
     if (copies === 1) {
         w = Math.floor((e.w ? e.w : 1.0) * parseInt(parent.attr("width")));
         h = Math.floor((e.h ? e.h : 1.0) * parseInt(parent.attr("height")));
@@ -202,9 +211,28 @@ function recursiveLayouter(name, e, parent, offsetX, offsetY, me) {
         if (parentLayout === "vertical") {
             w = ow;
             h = oh / copies;
-        } else {
+        } else if (parentLayout === "horizontal") {
             w = ow / copies;
             h = oh;
+        } else if (parentLayout === "bestfit") {
+            //oh what fun
+            let bestfit = {dif: 1000, g: cus}
+            const aspect = ow / oh;
+            for (let g = copies; g > 0; g--) {
+                const colls = g;
+                const rows = Math.ceil(copies / colls);
+                let newaspect = colls / rows;
+                let dif = Math.abs(aspect - newaspect);
+                if (dif < bestfit.dif) {
+                    bestfit.dif = dif;
+                    bestfit.g = g;
+                }
+            }
+            console.log(bestfit);
+            const colls = bestfit.g;
+            const rows = Math.ceil(copies / colls);
+            w = h = Math.min(ow / (colls), oh / rows);
+            collumncount = colls;
         }
         x = is(e.x) ? e.x : offsetX;
         y = is(e.y) ? e.y : offsetY;
@@ -216,12 +244,17 @@ function recursiveLayouter(name, e, parent, offsetX, offsetY, me) {
         me.attr("transform", (d, itr, sel) => {
             return "translate(" + x + "," + (y + (itr * h)) + ")"
         });
-    } else {
+    } else if (parentLayout === "horizontal") {
         me.attr("transform", (d, itr, sel) => {
             return "translate(" + (x + (itr * w)) + "," + y + ")"
         });
+    } else if (parentLayout === "bestfit") {
+        me.attr("transform", (d, itr, sel) => {
+            return "translate(" + (x + (w * (itr % collumncount))) + "," + (y + (w * (Math.floor(itr / collumncount)))) + ")";
+        });
+    } else {
+        me.attr("transform", "translate(" + x + "," + y + ")");
     }
-
 
     me.attr("id", name).classed(name, true);
     me.each((a, b, c) => {
@@ -256,7 +289,7 @@ function recursiveLayouter(name, e, parent, offsetX, offsetY, me) {
             container.attr("transform", (d, itr, sel) => {
                 return "translate(" + x + "," + (y + (itr * h)) + ")"
             });
-        } else {
+        } else if (parentLayout === "horizontal") {
             container.attr("transform", (d, itr, sel) => {
                 return "translate(" + (x + (itr * w)) + "," + y + ")"
             });
@@ -276,7 +309,7 @@ function recursiveLayouter(name, e, parent, offsetX, offsetY, me) {
                 let child = recursiveLayouter(c, e.contains[c], container, iofx, iofy);
                 if (layout === "vertical") {
                     iofy += parseInt(child.attr("height"));
-                } else {
+                } else if (layout === "horizontal") {
                     iofx += parseInt(child.attr("width"));
                 }
             }
@@ -297,6 +330,7 @@ function cool() {
 }
 
 var d3data = {
+    cumputeunits: new Array(cus).fill({id: -1}),
     simdunits: [
         {id: 0, lanes: [{id: 0}, {id: 1}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]},
         {id: 1, lanes: [{id: 0}, {id: 1}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]},
@@ -308,9 +342,23 @@ var su1, suc, sm1;
 
 function buildGPU2() {
     recursiveLayouter("root", layout, svgcon, 0, 0);
-    console.log("data bind");
-    let con = d3.select("#cuSIMDContainer").select("g");
 
+
+    console.log("data bind");
+    //build overview
+    let overcon = d3.select("#computeUnitOverview").select("g");
+    d3.selectAll("#computeUnitAvatar").remove();
+    let cua = overcon.selectAll("#computeUnitAvatar")
+        .data(d3data.cumputeunits)
+        .enter()
+        .append("g").attr("id", "computeUnitAvatar")
+        .on("click", function (d) {
+            return zoom(this);
+        });
+    cua.exit().remove();
+
+    //build detail
+    let con = d3.select("#cuSIMDContainer").select("g");
     d3.selectAll("#SIMDUnit").remove();
 
     su1 = con.selectAll("#SIMDUnit")
@@ -319,14 +367,12 @@ function buildGPU2() {
 
     suc = su1.selectAll(".SIMDUnit_container")
         .data(function (d) {
-            console.error(0, d, this);
             return [d];
         })
         .enter().append("g").classed("SIMDUnit_container", true);
 
     sm1 = suc.selectAll("#SIMDLane")
         .data(function (d) {
-            console.error(1, d, this);
             return d.lanes;
         })
         .enter().append("g").attr("id", "SIMDLane");
@@ -337,6 +383,9 @@ function buildGPU2() {
     console.log("bind done");
     d3.selectAll("#SIMDUnit");
     recursiveLayouter("root", layout, svgcon, 0, 0);
+
+
+    svgcon.on("click", reset);
 }
 
 
@@ -443,12 +492,18 @@ var dd;
 function zoom(d) {
     dd = d;
     console.log(d);
-    var t = cuscon.transition()
-        .duration(d3.event.altKey ? 7500 : 750)
-        .attr("transform", "translate(" + (scw - (0.25 * scw)) + ",0) scale(0.25,0.25)");
+    //how big is toprow
+    const trh = d3.select("#toprow").attr("height");
+    //how big is cu overview?
+    const cuh = d3.select("#computeUnitOverview").attr("height");
+    const scalefactor = Math.floor(cuh / trh);
 
-    cucon.label.text("Compute Unit:" + dd.attributes.id.value);
-    cucon.transition().duration(d3.event.altKey ? 7500 : 750).attr("visibility", "visible");
+    var t = d3.select("#computeUnitOverview").transition()
+        .duration(d3.event.altKey ? 7500 : 750)
+        .attr("transform", "translate(0,-" + trh + ") scale(" + 1 / scalefactor + "," + 1 / scalefactor + ")");
+
+    // cucon.label.text("Compute Unit:" + dd.attributes.id.value);
+    d3.select("#computeUnit").transition().duration(d3.event.altKey ? 7500 : 750).attr("visibility", "visible");
     d3.event.stopPropagation();
 
 }
@@ -460,10 +515,10 @@ function nope() {
 
 function reset() {
     console.log("reset");
-    var t = cuscon.transition()
+    var t = d3.select("#computeUnitOverview").transition()
         .duration(d3.event.altKey ? 7500 : 750)
-        .attr("transform", "translate(0," + toprow + ") scale(1.0,1.0)");
-    cucon.transition().duration(d3.event.altKey ? 7500 : 750).attr("visibility", "hidden");
+        .attr("transform", "translate(0,0) scale(1.0,1.0)");
+    d3.select("#computeUnit").transition().duration(d3.event.altKey ? 7500 : 750).attr("visibility", "hidden");
     d3.event.stopPropagation();
 }
 
