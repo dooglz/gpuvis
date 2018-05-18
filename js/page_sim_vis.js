@@ -2,6 +2,8 @@ var dcon;
 var svgcon;
 var $con;
 
+var selectedCU;
+
 var scw = 0;
 var sch = 0;
 var schw = 0;
@@ -262,9 +264,9 @@ function recursiveLayouter(name, e, parent, offsetX, offsetY, me) {
         let rect = mme.select("rect");
         rect = rect.empty() ? mme.append("rect") : rect;
         rect.attr("width", w).attr("height", h)
-          /*  .attr("fill", () => {
-                return ("#" + ((1 << 24) * Math.random() | 0).toString(16))
-            }); */
+        /*  .attr("fill", () => {
+              return ("#" + ((1 << 24) * Math.random() | 0).toString(16))
+          }); */
         rect.lower()
     });
 
@@ -274,9 +276,21 @@ function recursiveLayouter(name, e, parent, offsetX, offsetY, me) {
     h = Math.floor((1.0 - margin) * h);
     x = Math.floor((w - ((1.0 - margin) * w)) / 2);
     y = Math.floor((h - ((1.0 - margin) * h)) / 2);
+
+
+
+
     //console.log(w, h, x, y);
     me.each((a, b, c) => {
         let mme = d3.select(c[b]);
+        let text = mme.children("text");
+        if (!text.empty()) {
+            text.attr("x", x);
+            text.attr("y", y + 12);
+            text.call(wrap, w);
+        }
+
+
         let container = mme.select("g");
         container = container.empty() ? mme.append("g") : container;
         container.attr("layout", layout);
@@ -329,149 +343,95 @@ function cool() {
 
 }
 
-var d3data = {
-    cumputeunits: new Array(cus).fill({id: -1}),
-    simdunits: [
-        {id: 0, lanes: [{id: 0}, {id: 1}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]},
-        {id: 1, lanes: [{id: 0}, {id: 1}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]},
-        {id: 2, lanes: [{id: 0}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]},
-        {id: 3, lanes: [{id: 0}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]}
-    ]
-};
+
 var su1, suc, sm1;
+
 
 function buildGPU2() {
     recursiveLayouter("root", layout, svgcon, 0, 0);
+    selectedCU = (is(selectedCU) ? selectedCU : d3data.computeunits[0]);
 
-
-    console.log("data bind");
+    console.log("data bind", selectedCU);
     //build overview
-    let overcon = d3.select("#computeUnitOverview").select("g");
-    d3.selectAll("#computeUnitAvatar").remove();
-    let cua = overcon.selectAll("#computeUnitAvatar")
-        .data(d3data.cumputeunits)
+    let overcon = d3.select(".computeUnitOverview").select("g");
+    d3.selectAll(".computeUnitAvatar").remove();
+   // d3.selectAll(".SIMDUnit").remove();
+//
+    let cua = overcon.selectAll(".computeUnitAvatar")
+        .data(d3data.computeunits)
         .enter()
-        .append("g").attr("id", "computeUnitAvatar")
-        .on("click", function (d) {
-            return zoom(this);
+        .append("g").attr("id", "computeUnitAvatar").classed("computeUnitAvatar",true)
+        .on("click", zoom)
+        .classed("used", (d) => {
+            return d.used;
+        })
+        .append("text").text((d) => {
+            return d.occupancy;
         });
+
     cua.exit().remove();
 
+    let cuLabel = d3.select(".computeUnit").selectAll(".cutext").data([selectedCU]);
+    cuLabel.enter().append("text").classed("cutext",true);
+    cuLabel.text((d) => {
+        console.log(123, d);
+        return "Cu id: " + d.id
+    });
+    cuLabel.exit().remove();
+/*
+    d3.select(".computeUnit")
+        .select("text")
+        .data(selectedCU)
+        .enter().append("text").text((d) => {
+        return "yolo"+ d;
+    });
+*/
     //build detail
-    let con = d3.select("#cuSIMDContainer").select("g");
-    d3.selectAll("#SIMDUnit").remove();
+    let con = d3.select(".cuSIMDContainer").select("g");
+    // d3.selectAll("#SIMDUnit").remove();
 
-    su1 = con.selectAll("#SIMDUnit")
-        .data(d3data.simdunits)
-        .enter().append("g").attr("id", "SIMDUnit").append("g").attr("id", "SIMDUnit_container");
+    su1 = con.selectAll(".SIMDUnit").data(selectedCU.simdunits);
 
-    suc = su1.selectAll(".SIMDUnit_container")
-        .data(function (d) {
-            return [d];
-        })
-        .enter().append("g").classed("SIMDUnit_container", true);
-
-    sm1 = suc.selectAll("#SIMDLane")
-        .data(function (d) {
-            return d.lanes;
-        })
-        .enter().append("g").attr("id", "SIMDLane");
-
+    su1.enter().append("g").attr("id", "SIMDUnit").classed("SIMDUnit",true);
     su1.exit().remove();
+
+    suc = su1.selectAll(".SIMDUnit_container").data((d) => {
+        return [d];
+    });
+    suc.enter().append("g").attr("id", "SIMDUnit_container").classed("SIMDUnit_container",true);
+    suc.exit().remove();
+
+    d3.selectAll(".sutext").remove();
+    let sut = su1.selectAll(".sutext").data((d) => {
+        return [d];
+    });
+    sut.enter().append("text").attr("id", "sutext").classed("sutext",true);
+    sut.exit().remove();
+    sut.text((d) => {
+        return d.id
+    });
+
+    sm1 = suc.selectAll(".SIMDLane").data((d) => {
+        return d.lanes;
+    });
+    sm1.enter().append("g").attr("id", "SIMDLane").classed("SIMDLane",true);
     sm1.exit().remove();
+
+
+    let sm1t = sm1.selectAll(".smtext").data((d) => {
+        return [d];
+    });
+    sm1t.enter().append("text").attr("id", "smtext").classed("smtext",true);
+    sm1t.exit().remove();
+    sm1t.text((d) => {
+        return is(d.id) ? d.id : -1;
+    });
 
     console.log("bind done");
     d3.selectAll("#SIMDUnit");
     recursiveLayouter("root", layout, svgcon, 0, 0);
 
-
     svgcon.on("click", reset);
-}
-
-
-function buildGPU() {
-    d_cus = [];
-
-
-    let bestfit = {dif: 1000, g: cus}
-    toprow = 0.2 * sch;
-    bottomrow = sch - toprow;
-    svgcon.append("rect")
-        .attr("x", schw - (0.5 * toprow))
-        .attr("y", 0)
-        .attr("width", toprow)
-        .attr("height", toprow);
-
-    const aspect = scw / (sch - toprow);
-    for (let g = cus; g > 0; g--) {
-        const colls = g;
-        const rows = Math.ceil(cus / colls);
-        let newaspect = colls / rows;
-        let dif = Math.abs(aspect - newaspect);
-        if (dif < bestfit.dif) {
-            bestfit.dif = dif;
-            bestfit.g = g;
-        }
-    }
-    console.log(bestfit);
-    const colls = bestfit.g;
-    const rows = Math.ceil(cus / colls);
-    let cudim = Math.min(scw / (colls), bottomrow / rows);
-    let gap = cudim;
-    cudim -= 10;
-    cuscon = svgcon.append("g").attr("transform", "translate(0," + toprow + ")");
-
-    for (let i = 0; i < cus; i++) {
-        let g = cuscon.append("g")
-            .attr("transform",
-                "translate(" +
-                (gap * (i % colls)) + "," +
-                (gap * (Math.floor(i / colls))) + ")")
-            .classed("computeUnit", true)
-            .attr("id", i)
-            .on("click", function (d) {
-                return zoom(this);
-            });
-        g.append("rect")
-            .attr("width", cudim)
-            .attr("height", cudim);
-
-        g.append("text")
-            .attr("x", cudim / 2)
-            .attr("y", cudim / 2)
-            .attr("dy", ".35em") //todo find out what this is
-            .append('tspan').text("CU:" + i).attr('dy', '.9em');
-        d_cus.push(g);
-    }
-
-    cucon = ghelper(svgcon, "actualComputeUnit", "Compute Unit", 0, toprow, scw, bottomrow).attr("visibility", "hidden ").on("click", nope);
-    gap = bottomrow / 5.2;
-    let things = [["lds", "LDS"], ["l1c", "L1 Cache"], ["bmu", "Branch & Msg Unit"], ["scheduler", "Scheduler"], ["tu", "Texture Units"]];
-    for (let i = 0; i < things.length; i++) {
-        ghelper(cucon, things[i][0], things[i][1], 20, 20 + (i * gap), gap * 0.85, gap * 0.85, true);
-    }
-    ghelper(cucon, "salu", "Scaler ALU", gap * 1.5, 20, gap * 0.85, gap * 0.85, true);
-    ghelper(cucon, "sgpr", "Scaler GPR", gap * 1.5, 20 + gap, gap * 0.85, gap * 0.85, true);
-    {
-        let vgap = (bottomrow - 40) / simdunits;
-        let unitwidth = scw - (gap * 3.5);
-        for (let i = 0; i < simdunits; i++) {
-            let v = ghelper(cucon, "valu", "Simd Unit " + i, (gap * 3), 20 + (i * vgap), unitwidth, vgap * 0.85, false);
-            let lanewidth = (unitwidth - 40) / simdlanes;
-            for (let j = 0; j < simdlanes; j++) {
-                let lane = ghelper(v, "lane", "Lane " + j, 20 + (lanewidth * j), 20, lanewidth * 0.85, vgap * 0.6, false);
-
-                let vgprheight = (vgap * 0.5) / vgprs;
-                for (let k = 0; k < vgprs; k++) {
-                    ghelper(lane, "vgpr", k, 2, (vgap * 0.1) + (k * vgprheight), lanewidth * 0.80, vgprheight * 0.9, true);
-
-                }
-
-            }
-        }
-    }
-    svgcon.on("click", reset);
-
 }
 
 function ghelper(parent, css, text, x, y, w, h, labelIn) {
@@ -489,9 +449,10 @@ function ghelper(parent, css, text, x, y, w, h, labelIn) {
 
 var dd;
 
-function zoom(d) {
-    dd = d;
-    console.log(d);
+function zoom(data, iter, element) {
+    selectedCU = d3data.computeunits[iter];
+    console.log(iter, data, element);
+    buildGPU2();
     //how big is toprow
     const trh = d3.select("#toprow").attr("height");
     //how big is cu overview?
@@ -522,16 +483,44 @@ function reset() {
     d3.event.stopPropagation();
 }
 
+var d3data = {
+    computeunits: [{
+        id: 0,
+        simdunits: [
+            {id: 0, lanes: [{id: 0}, {id: 1}, {id: 2}, {id:3}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]},
+            {id: 1, lanes: [{id: 0}, {id: 1}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]},
+            {id: 2, lanes: [{id: 0}, {id: 1}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]},
+            {id: 3, lanes: [{id: 0}, {id: 1}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]}
+        ]
+    }]
+
+};
+
 
 function updateGPUVis() {
-    d3.selectAll(".computeUnitAvatar").classed("used", function (d, i) {
-        return i < usedCUs;
-    });
-    d3.selectAll(".used > text").append('tspan')
-        .attr('dy', '.9em').text(function (d, i) {
-        return (occupancy[i] * 100)
-    });
-//cucon.attr("transform","translate("+(scw-(0.25*scw))+",0) scale(0.25,0.25)");
+    d3data.computeunits = [];
+    for (let i = 0; i < cus; i++) {
+        let c = {};
+        c.id = i;
+        c.used = (i < usedCUs);
+        c.occupancy = occupancy[i] * 100;
+        c.simdunits = [];
+        for (let j = 0; j < simdunits; j++) {
+            let cs = {};
+            cs.id = j;
+            cs.lanes = [];
+            for (let k = 0; k < simdlanes; k++) {
+                let csl = {};
+                csl.id = k;
+                cs.lanes.push(csl);
+            }
+            c.simdunits.push(cs);
+        }
+        d3data.computeunits.push(c);
+    }
+
+    buildGPU2();
+    buildGPU2();
 }
 
 function wrap(text, width) {

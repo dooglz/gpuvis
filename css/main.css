@@ -329,6 +329,9 @@ pre {
     height: 80vh;
 }
 
+text {
+    fill: darkgreen;
+}
 rect {
     stroke: black;
     stroke-width: 1px;
