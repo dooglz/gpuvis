@@ -329,76 +329,23 @@ pre {
     height: 80vh;
 }
 
-text {
-    fill: darkgreen;
-}
-rect {
-    stroke: black;
-    stroke-width: 1px;
-}
-
-.computeUnitAvatar > rect {
-    fill: #009FB7;
+.bigViewCon  div {
+    background-color:rgba(0, 0, 0, 0.2);
+    border-style: solid;
+    border-width: 1px;
+    float:left;
 }
 
-.computeUnitAvatar.used > rect {
-    fill: #39FF14;
+.bigViewCon  .label {
+    border-width: 0;
+    float: none;
+    clear: both;
+    background-color:rgba(0, 0, 0, 0.0);
 }
 
-.computeUnitAvatar.used > rect:hover {
-    stroke: black;
-    stroke-width: 5px;
+.bigViewCon  .ComputeUnit {
+    max-width: 33%;
 }
-
-.computeUnit > rect {
-    fill: #AFACBF;
-}
-
-.LDS > rect {
-    fill: #FED766;
-}
-
-.L1Cache > rect {
-    fill: #FED766;
-}
-
-.BMU > rect {
-    fill: #C31368;
-}
-
-.Scheduler > rect {
-    fill: #C31368;
-}
-
-.TextureUnit > rect {
-    fill: #C31368;
-}
-
-.SALU > rect {
-    stroke: black;
-    stroke-width: 5px;
-}
-
-.SGPR > rect {
-    fill: #FED766;
-}
-
-.SIMDUnit > rect {
-    fill: #FED766;
-}
-
-.SIMDLane > rect {
-    fill: #009FB7;
-}
-
-.SIMDVGPR > rect {
-    fill: #FED766;
-}
-
-
-
-
-
 
 
 

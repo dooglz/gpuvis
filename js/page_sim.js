@@ -1,6 +1,15 @@
+var gpustate;
+const cus = 56
+const simdlanes = 16;
+const simdunits = 4;
+const wfSize = simdlanes * simdunits;
+const sgprs = 12;
+const vgprs = 7;
+
 function main_sim() {
     btn_go = $("#simgobtn");
     console.log("Hello sim");
+    initState();
     initvis();
     if (!is(program) || !is(isa)) {
         Warn("Load a Program+ISA First!")
@@ -8,16 +17,38 @@ function main_sim() {
         return;
     }
     btn_go.removeAttr('disabled');
+
+
+
     LoadCallback();
 }
 
+function initState(){
+    gpustate = {};
+    gpustate.children= [];
+    for (let i = 0; i < cus; i++) {
+        let cu = {};
+        cu.type="ComputeUnit";
+        cu.id = i;
+        cu.children = [];
+        for (let j = 0; j < simdunits; j++) {
+            let su = {};
+            su.type = "SimdUnit";
+            su.id = j;
+            su.children = [];
+            for (let k = 0; k < simdlanes; k++) {
+                let sl = {};
+                sl.type = "SimdLane";
+                sl.id = k;
+                su.children.push(sl);
+            }
+            cu.children.push(su);
+        }
+        gpustate.children.push(cu);
+    }
+}
+
 //let sim_ticks = [];
-const cus = 56
-const simdlanes = 16;
-const simdunits = 4;
-const wfSize = simdlanes * simdunits;
-const sgprs = 12;
-const vgprs = 7;
 
 function getIsa(code) {
     let isacode = isa.codes.find(function (e) {
