@@ -19,16 +19,18 @@ function main_sim() {
     btn_go.removeAttr('disabled');
 
 
-
     LoadCallback();
 }
 
-function initState(){
+function initState() {
     gpustate = {};
-    gpustate.children= [];
+    gpustate.children = [];
+    gpustate.type = "R9Fury"
+    gpustate.v = 0;
+    gpustate.id = 0;
     for (let i = 0; i < cus; i++) {
         let cu = {};
-        cu.type="ComputeUnit";
+        cu.type = "ComputeUnit";
         cu.id = i;
         cu.children = [];
         for (let j = 0; j < simdunits; j++) {
@@ -40,10 +42,18 @@ function initState(){
                 let sl = {};
                 sl.type = "SimdLane";
                 sl.id = k;
+                sl.isa = "nop";
+
+                sl.children = [{id: 0, v: 2, type: "VGPR"}]
                 su.children.push(sl);
             }
             cu.children.push(su);
         }
+        cu.children.push({id: 0, v: 1, type: "SALU", children: [{id: 0, v: 2, type: "SGPR"}]});
+        cu.children.push({id: 0, v: 3, type: "BMU"});
+        cu.children.push({id: 0, v: 3, type: "Scheduler"});
+        cu.children.push({id: 0, v: 3, type: "BMU"});
+        cu.children.push({id: 0, v: 2, type: "LDS"});
         gpustate.children.push(cu);
     }
 }

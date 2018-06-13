@@ -329,22 +329,61 @@ pre {
     height: 80vh;
 }
 
-.bigViewCon  div {
-    background-color:rgba(0, 0, 0, 0.2);
+.bigViewCon div {
+    background-color: rgba(0, 0, 0, 0.2);
     border-style: solid;
     border-width: 1px;
-    float:left;
+    float: left;
 }
 
-.bigViewCon  .label {
+.bigViewCon .label {
     border-width: 0;
     float: none;
     clear: both;
-    background-color:rgba(0, 0, 0, 0.0);
+    background-color: rgba(0, 0, 0, 0.0);
 }
 
-.bigViewCon  .ComputeUnit {
+.bigViewCon .ComputeUnit {
     max-width: 33%;
+    margin: 2px;
+}
+
+.cuViewCon div {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-style: solid;
+    border-width: 1px;
+    float: left;
+}
+
+.cuViewCon .label {
+    border-width: 0;
+    float: none;
+    clear: both;
+    background-color: rgba(0, 0, 0, 0.0);
+}
+
+.taskmanViewCon .ComputeUnit {
+    max-width: 20%;
+}
+
+.taskmanViewCon div {
+    min-width: 20px;
+    min-height: 20px;
+    background-color: rgba(0, 0, 0, 0.2);
+    float: left;
+    margin: 2px;
+}
+
+.taskmanViewCon .SALU {
+    background-color: rgba(0, 0, 0, 1.0);
+}
+
+.taskmanViewCon .SimdLane {
+    background-color: rgba(0, 0, 0, 1.0);
+}
+
+.taskmanViewCon .inuse {
+    background-color: rgba(0, 255, 0, 1.0);
 }
 
 

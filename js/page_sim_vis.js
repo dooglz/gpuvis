@@ -1,10 +1,47 @@
 var viscon;
 var $viscon;
-var bigViewCon,cuViewCon,taskmanViewCon;
+var bigViewCon, cuViewCon, taskmanViewCon;
 var scw = 0;
 var sch = 0;
 var schw = 0;
 var schh = 0;
+
+
+let vis = {};
+vis.currentview = "";
+
+vis.clear = function () {
+    viscon.html("");
+    bigViewCon = viscon.append('div').attr("id", "bigViewCon").attr("class", "bigViewCon");
+    cuViewCon = viscon.append('div').attr("id", "cuViewCon").attr("class", "cuViewCon");
+    taskmanViewCon = viscon.append('div').attr("id", "taskmanViewCon").attr("class", "taskmanViewCon");
+    vis.currentview = "";
+};
+
+vis.cuview = function (id) {
+    const me = "cuview"
+    if (vis.currentview !== me) {
+        vis.clear();
+    }
+    vis.currentview = me;
+    buildCuView(id);
+};
+vis.bigview = function () {
+    const me = "bigview"
+    if (vis.currentview !== me) {
+        vis.clear();
+    }
+    vis.currentview = me;
+    buildBigView();
+};
+vis.taskmanview = function () {
+    const me = "taskman"
+    if (vis.currentview !== me) {
+        vis.clear();
+    }
+    vis.currentview = me;
+    buildTaskManView();
+};
 
 function initvis() {
     viscon = d3.select("#viscontainer");
@@ -13,33 +50,152 @@ function initvis() {
     sch = 2 * Math.floor($viscon.height() / 2);
     schw = 0.5 * scw;
     schh = 0.5 * sch;
-    bigViewCon = viscon.append('div').attr("id", "bigViewCon") .attr("class","bigViewCon");
-    cuViewCon = viscon.append('div').attr("id", "cuViewCon") .attr("class","cuViewCon");
-    taskmanViewCon = viscon.append('div').attr("id", "taskmanViewCon").attr("class","taskmanViewCon");
-    buildBigView();
-    buildCuView();
-    buildTaskManView();
+    vis.clear();
+    vis.cuview(2);
+    //vis.bigview();
 }
 
-function buildBigView(){
-    let container = bigViewCon;
-    let current =  gpustate;
-    while(current.children){
-        console.log(current);
-        container= container.selectAll(current.children[0].type)
-            .data(function(d) { return current.children;})
-            .enter().append("div")
-            .attr("id", (d)=>{return d.type + '-'+d.id})
-            .attr("class",(d)=>{return d.type});
-        container.append("div") .attr("class","label").html((d)=>{return d.type + '-'+d.id});
-        current = current.children[0];
+function labelSwap(d, mask) {
+    if (mask[d]) {
+        return mask[d];
     }
+    return d;
 }
 
-function buildCuView(){
+function defaultLabel(d) {
+    return d.type + '-' + d.id + (d.val !== undefined ? (":" + d.val) : "");
+}
+
+function pipey(a, b, c, d, e) {
+    console.log('a', a, 'b', b, 'c', c, 'd', d);
+}
+
+function TestLiveData() {
+    console.log("new data");
+    let _recurse = function (a) {
+        a.val = Math.ceil(Math.random() * 9);
+        if(a.isa !== undefined){
+            a.isa = (Math.random()< 0.6) ? "nop" : "v_mov_b32";
+        }
+        if (a.children) {
+            a.children.forEach(_recurse)
+        }
+    };
+    gpustate.children.forEach(_recurse);
+}
+
+function recursive(baseSelection, data, textFunc, verbosity, maxdepth) {
+    let _recurse = function (d, idx, selection, depth, depthstring) {
+        if (d.children === undefined) {
+            return;
+        }
+        depth++;
+        if(depth > maxdepth){return;}
+
+        if (d.type) {
+            depthstring += "_" + d.type + '-' + d.id;
+        }else{
+            depthstring += "_?";
+        }
+
+        console.log('Building',depth, depthstring);
+
+        let childData = d.children;
+        let container = d3.select(this);
+        let types = new Set();
+
+        childData.forEach((c) => {
+            if ((c.v && c.v > verbosity)) {
+                return;
+            }
+            types.add(c.type)
+        });
+
+        types.forEach((t) => {
+            let dataFiltered = childData.filter(c => c.type == t);
+            let div = container.selectAll("." + t).data(dataFiltered);
+            let divEnter = div
+                .enter().append("div")
+                .attr("id", (d) => {
+                    return d.type + '-' + d.id
+                })
+                .attr("class", (d) => {
+                    return d.type
+                });
+            let titleEnter = divEnter.append("div").attr("class", "label");
+
+            div.select(".label").merge(titleEnter).text(textFunc);
+            div.merge(divEnter)
+                .each(
+                    function (a, b, c) {
+                        _recurse.call(this, a, b, c, depth, depthstring);
+                    }
+                );
+        });
+    };
+    maxdepth = maxdepth=== undefined ? 9999: maxdepth;
+    baseSelection.data([data]).each(function (a, b, c) {
+        _recurse.call(this, a, b, c, 0, "");
+    });
+}
+
+function buildBigView() {
+    let container = bigViewCon;
+    let current = gpustate;
+
+    recursive(container, current, defaultLabel, 3);
+}
+
+function buildCuView(id) {
+    let labelmask = {"SimdLane": "Lane"};
     let container = cuViewCon;
+    let current = gpustate.children[id];
+    {
+        let title = container.selectAll(".cutitle").data([current]);
+        let titleEnter = title.enter().append('div').attr("class", "cutitle");
+        title = titleEnter.merge(title)
+            .html((d) => "<h3>Compute Unit " + d.id + "</h3>");
+    }
+
+    recursive(container, current, defaultLabel, 3);
 }
 
-function buildTaskManView(){
-
+function buildTaskManView() {
+    let container = taskmanViewCon;
+    let current = gpustate
+    //recursive(container, current, (d)=>{return d.type.slice(0,2)}, 2,3);
+    recursive(container, current, (d)=>{return ""}, 2,3);
+    taskmanViewCon.selectAll(".label").remove();
+    taskmanViewCon.selectAll(".SimdLane").classed("inuse",(d)=>{return (d.isa && d.isa !== "nop");});
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
