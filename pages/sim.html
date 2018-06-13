@@ -8,14 +8,20 @@
         });
     });
 </script>
+<div class="loadercon">
+    <div class="loader"></div>
+</div>
 <div class="container-fluid">
     <div class="row">
         <div class="col-3 simres">
             <h3>Vis Control: </h3>
-            <button id="btn1" type="button" class="btn btn-secondary btn-block" onclick="vis.bigview()" >Overview</button>
-            <button id="btn2" type="button" class="btn btn-secondary btn-block" onclick="vis.taskmanview()" >TaskMan</button>
-            <button id="btn3" type="button" class="btn btn-secondary btn-block" onclick="vis.cuview(0)" >cuview</button>
-            <button id="btn3" type="button" class="btn btn-secondary btn-block" onclick="TestLiveData()" >fakedata</button>
+            <button id="btn1" type="button" class="btn btn-secondary btn-block" onclick="vis.bigview()">Overview
+            </button>
+            <button id="btn2" type="button" class="btn btn-secondary btn-block" onclick="vis.taskmanview()">TaskMan
+            </button>
+            <button id="btn3" type="button" class="btn btn-secondary btn-block" onclick="vis.cuview(20)">cuview</button>
+            <button id="btn3" type="button" class="btn btn-secondary btn-block" onclick="TestLiveData()">fakedata
+            </button>
             <h3>Launch Params: </h3>
             Kernels: <input name="alunch_kernels" type="number" min="0" max="64" value="64" step="1">
             <button id="simgobtn" type="button" class="btn btn-secondary" onclick="Launchsim()">GO

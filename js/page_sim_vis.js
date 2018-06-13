@@ -1,5 +1,6 @@
 var viscon;
 var $viscon;
+var loader;
 var bigViewCon, cuViewCon, taskmanViewCon;
 var scw = 0;
 var sch = 0;
@@ -10,42 +11,78 @@ var schh = 0;
 let vis = {};
 vis.currentview = "";
 
-vis.clear = function () {
+function showspinner(state, cb) {
+    const nowtsate = (loader.is(":visible") === state);
+    if (state === true) {
+        loader.show();
+    } else {
+        loader.hide();
+    }
+    if (!nowtsate && cb !== undefined) {
+        window.setTimeout(cb, 1000);
+    }
+    return nowtsate;
+}
+
+vis.clear = function (cb) {
     viscon.html("");
     bigViewCon = viscon.append('div').attr("id", "bigViewCon").attr("class", "bigViewCon");
     cuViewCon = viscon.append('div').attr("id", "cuViewCon").attr("class", "cuViewCon");
     taskmanViewCon = viscon.append('div').attr("id", "taskmanViewCon").attr("class", "taskmanViewCon");
     vis.currentview = "";
+    if (cb) {
+        window.setTimeout(cb, 1000);
+    }
 };
 
 vis.cuview = function (id) {
+    if (!showspinner(true, () => {
+        vis.cuview(id)
+    })) {
+        return;
+    }
     const me = "cuview"
-    if (vis.currentview !== me) {
+    if (vis.currentview !== me && vis.currentview !== "") {
         vis.clear();
     }
     vis.currentview = me;
     buildCuView(id);
+    showspinner(false);
 };
+
 vis.bigview = function () {
+    if (!showspinner(true, vis.bigview)) {
+        return;
+    }
     const me = "bigview"
-    if (vis.currentview !== me) {
+    loader.show();
+    if (vis.currentview !== me && vis.currentview !== "") {
         vis.clear();
     }
     vis.currentview = me;
     buildBigView();
+    showspinner(false);
 };
+
 vis.taskmanview = function () {
-    const me = "taskman"
-    if (vis.currentview !== me) {
+    if (!showspinner(true, vis.taskmanview)) {
+        return;
+    }
+    const me = "taskman";
+    loader.show();
+    if (vis.currentview !== me && vis.currentview !== "") {
         vis.clear();
     }
     vis.currentview = me;
+
     buildTaskManView();
+    showspinner(false);
 };
 
 function initvis() {
     viscon = d3.select("#viscontainer");
     $viscon = $("#viscontainer");
+    loader = $(".loadercon");
     scw = 2 * Math.floor($viscon.width() / 2); //floor to nearest even number
     sch = 2 * Math.floor($viscon.height() / 2);
     schw = 0.5 * scw;
@@ -74,8 +111,8 @@ function TestLiveData() {
     console.log("new data");
     let _recurse = function (a) {
         a.val = Math.ceil(Math.random() * 9);
-        if(a.isa !== undefined){
-            a.isa = (Math.random()< 0.6) ? "nop" : "v_mov_b32";
+        if (a.isa !== undefined) {
+            a.isa = (Math.random() < 0.6) ? "nop" : "v_mov_b32";
         }
         if (a.children) {
             a.children.forEach(_recurse)
@@ -90,15 +127,17 @@ function recursive(baseSelection, data, textFunc, verbosity, maxdepth) {
             return;
         }
         depth++;
-        if(depth > maxdepth){return;}
+        if (depth > maxdepth) {
+            return;
+        }
 
         if (d.type) {
             depthstring += "_" + d.type + '-' + d.id;
-        }else{
+        } else {
             depthstring += "_?";
         }
 
-        console.log('Building',depth, depthstring);
+        console.log('Building', depth, depthstring);
 
         let childData = d.children;
         let container = d3.select(this);
@@ -133,7 +172,7 @@ function recursive(baseSelection, data, textFunc, verbosity, maxdepth) {
                 );
         });
     };
-    maxdepth = maxdepth=== undefined ? 9999: maxdepth;
+    maxdepth = maxdepth === undefined ? 9999 : maxdepth;
     baseSelection.data([data]).each(function (a, b, c) {
         _recurse.call(this, a, b, c, 0, "");
     });
@@ -164,9 +203,13 @@ function buildTaskManView() {
     let container = taskmanViewCon;
     let current = gpustate
     //recursive(container, current, (d)=>{return d.type.slice(0,2)}, 2,3);
-    recursive(container, current, (d)=>{return ""}, 2,3);
+    recursive(container, current, (d) => {
+        return ""
+    }, 2, 3);
     taskmanViewCon.selectAll(".label").remove();
-    taskmanViewCon.selectAll(".SimdLane").classed("inuse",(d)=>{return (d.isa && d.isa !== "nop");});
+    taskmanViewCon.selectAll(".SimdLane").classed("inuse", (d) => {
+        return (d.isa && d.isa !== "nop");
+    });
 }
 
 
