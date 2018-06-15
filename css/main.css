@@ -368,6 +368,10 @@ pre {
     height: 80vh;
 }
 
+.childcontainer {
+    background-color: rgba(0, 0, 0, 0.0);
+}
+
 .bigViewCon div {
     background-color: rgba(0, 0, 0, 0.2);
     border-style: solid;
@@ -380,6 +384,14 @@ pre {
     float: none;
     clear: both;
     background-color: rgba(0, 0, 0, 0.0);
+}
+
+.ComputeUnit:nth-child(odd) {
+    background: rgba(0, 50, 0, 0.2);
+}
+
+.ComputeUnit:nth-child(even) {
+    background: rgba(50, 0, 0, 0.2);
 }
 
 .bigViewCon .ComputeUnit {
@@ -401,8 +413,30 @@ pre {
     background-color: rgba(0, 0, 0, 0.0);
 }
 
+.cuViewCon .cutitle {
+    clear: both;
+    width: 100%;
+}
+
+.SimdUnit_container {
+    clear: both;
+    margin-top: 5px;
+    width: 100%;
+}
+
+.SALU_container {
+    clear: both;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    width: 100%;
+}
+
+.SALU {
+    width: 100%;
+}
+
 .taskmanViewCon .ComputeUnit {
-    max-width: 20%;
+    max-width: 24%;
 }
 
 .taskmanViewCon div {
@@ -424,8 +458,6 @@ pre {
 .taskmanViewCon .inuse {
     background-color: rgba(0, 255, 0, 1.0);
 }
-
-
 
 
 

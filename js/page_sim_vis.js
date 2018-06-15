@@ -149,27 +149,46 @@ function recursive(baseSelection, data, textFunc, verbosity, maxdepth) {
             }
             types.add(c.type)
         });
-
+        let typesWithData = [];
         types.forEach((t) => {
             let dataFiltered = childData.filter(c => c.type == t);
-            let div = container.selectAll("." + t).data(dataFiltered);
-            let divEnter = div
-                .enter().append("div")
-                .attr("id", (d) => {
-                    return d.type + '-' + d.id
-                })
-                .attr("class", (d) => {
-                    return d.type
-                });
-            let titleEnter = divEnter.append("div").attr("class", "label");
+            typesWithData.push({type: t, children: dataFiltered});
+        });
 
-            div.select(".label").merge(titleEnter).text(textFunc);
-            div.merge(divEnter)
-                .each(
-                    function (a, b, c) {
-                        _recurse.call(this, a, b, c, depth, depthstring);
-                    }
-                );
+        //for each type of child
+        typesWithData.forEach((t) => {
+            //Append a bare div of class .child_container
+            let containerDiv = container.selectAll("." + t.type + "_container").data([t])
+            let containerDivEnter = containerDiv
+                .enter().append("div")
+                .attr("class", (d) => {
+                    return d.type + "_container childcontainer"
+                });
+            //for each of those divs (there's only ever going to be one here)
+            containerDiv.merge(containerDivEnter).each(
+                function (data, idx, c2) {
+                    //append a div for each child
+                    let div = d3.select(this).selectAll("." + data.type).data(data.children);
+                    let divEnter = div
+                        .enter().append("div")
+                        .attr("id", (d) => {
+                            return d.type + '-' + d.id
+                        })
+                        .attr("class", (d) => {
+                            return d.type
+                        });
+                    //append a label div inside it
+                    let titleEnter = divEnter.append("div").attr("class", "label");
+                    div.select(".label").merge(titleEnter).text(textFunc);
+                    //do the update(merge), and recurse
+                    div.merge(divEnter).each(
+                        function (a, b, c) {
+                            _recurse.call(this, a, b, c, depth, depthstring);
+                        }
+                    );
+                }
+            );
+
         });
     };
     maxdepth = maxdepth === undefined ? 9999 : maxdepth;
