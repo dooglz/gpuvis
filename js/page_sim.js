@@ -1,4 +1,5 @@
 var gpustate;
+var gpustates = [];
 const cus = 56
 const simdlanes = 16;
 const simdunits = 4;
@@ -22,39 +23,81 @@ function main_sim() {
     LoadCallback();
 }
 
+function localID(stateId) {
+    let b = stateId.split("_");
+    return parseInt(b[b.length - 1].split("-")[1]);
+}
+
+function stateFinder(stateId) {
+    let b = gpustate;
+    for (key of stateId.split("_")) {
+        let type = key.split("-")[0];
+        let id = parseInt(key.split("-")[1]);
+        console.log(123);
+        if (b.children === undefined) {
+            break;
+        }
+        let found = false;
+        for (c of b.children) {
+            if (c.short === type && c.id === id) {
+                b = c;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            console.error("bad stateID", stateId);
+            throw("bad stateID:" + stateId);
+        }
+    }
+    return b;
+}
+
+
 function initState() {
-    gpustate = {};
+    gpustates = [{}];
+    gpustate = gpustates[0];
     gpustate.children = [];
     gpustate.type = "R9Fury"
     gpustate.v = 0;
+    gpustate.tick = 0;
     gpustate.id = 0;
+    gpustate.short = "gpu";
     for (let i = 0; i < cus; i++) {
         let cu = {};
         cu.type = "ComputeUnit";
+        cu.short = "cu";
         cu.id = i;
         cu.children = [];
+        cu.simdUnits = [];
+        cu.enabled = false;
         for (let j = 0; j < simdunits; j++) {
             let su = {};
             su.type = "SimdUnit";
             su.id = j;
+            su.short = "su";
             su.children = [];
             for (let k = 0; k < simdlanes; k++) {
                 let sl = {};
                 sl.type = "SimdLane";
                 sl.id = k;
+                sl.short = "sl";
                 sl.isa = "nop";
-
-                sl.children = [{id: 0, v: 2, type: "VGPR"}]
+                sl.children = [{id: 0, v: 2, short: "vr", type: "VGPR"}];
                 su.children.push(sl);
             }
+            su.simdLanes = su.children;
             cu.children.push(su);
+            cu.simdUnits.push(su);
         }
+
         cu.children.push({id: 0, v: 1, type: "SALU", children: [{id: 0, v: 2, type: "SGPR"}]});
         cu.children.push({id: 0, v: 3, type: "BMU"});
         cu.children.push({id: 0, v: 3, type: "Scheduler"});
         cu.children.push({id: 0, v: 3, type: "BMU"});
         cu.children.push({id: 0, v: 2, type: "LDS"});
         gpustate.children.push(cu);
+        gpustate.computeUnits = gpustate.children;
     }
 }
 
@@ -135,17 +178,23 @@ function Launchsim() {
         let tickcount = 0;
         while (not_finished && tickcount < 100) {
             $("#simstatus").text(tickcount + " / " + (program.kernel.asm.instructions.length - 1));
+
             not_finished = false;
             tickcount++;
             globalTick = tickcount;
             globalMaxTick = globalTick;
+
+            gpustates.push(jQuery.extend(true, {}, gpustate));
+            gpustate = gpustates[(gpustates.length) - 1];
+            gpustate.tick = tickcount;
+
             for (let c of cus) {
                 not_finished |= c.tick();
             }
         }
         console.log("done");
         calcStats(cus.length);
-        updateGPUVis();
+        //updateGPUVis();
         postSim();
     } catch (e) {
         console.error(e);
@@ -283,6 +332,9 @@ class ComputeUnit {
     }
 
     tick() {
+        let mystate = gpustate.computeUnits[this.gid];
+        mystate.enabled = true;
+        mystate.isa = this.opcode;
         if (this.done || this.opcode == "s_endpgm") {
             this.done = true;
             console.log(this, "cu done");

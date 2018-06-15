@@ -99,8 +99,17 @@ function labelSwap(d, mask) {
     return d;
 }
 
-function defaultLabel(d) {
+function defaultLabel2(d) {
     return d.type + '-' + d.id + (d.val !== undefined ? (":" + d.val) : "");
+}
+
+function defaultLabel(d) {
+    let labelmask = {"SimdLane": "Lane"};
+    let str = labelSwap(d.type, labelmask) + '-' + d.id;
+    str += (d.isa !== undefined ? ("<br>" + d.isa) : "");
+    str += (d.data !== undefined ? ("<br>" + d.data) : "");
+    //str += (d.val !== undefined ? ("<br>" + d.val) : "") ;
+    return str;
 }
 
 function pipey(a, b, c, d, e) {
@@ -179,7 +188,7 @@ function recursive(baseSelection, data, textFunc, verbosity, maxdepth) {
                         });
                     //append a label div inside it
                     let titleEnter = divEnter.append("div").attr("class", "label");
-                    div.select(".label").merge(titleEnter).text(textFunc);
+                    div.select(".label").merge(titleEnter).html(textFunc);
                     //do the update(merge), and recurse
                     div.merge(divEnter).each(
                         function (a, b, c) {
@@ -212,7 +221,9 @@ function buildCuView(id) {
         let title = container.selectAll(".cutitle").data([current]);
         let titleEnter = title.enter().append('div').attr("class", "cutitle");
         title = titleEnter.merge(title)
-            .html((d) => "<h3>Compute Unit " + d.id + "</h3>");
+            .html((d) => "<h3>Compute Unit " + d.id + "</h3>"
+                + (d.isa ? " - " + d.isa : "")
+            );
     }
 
     recursive(container, current, defaultLabel, 3);
