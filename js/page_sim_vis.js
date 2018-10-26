@@ -15,11 +15,13 @@ function showspinner(state, cb) {
     const nowtsate = (loader.is(":visible") === state);
     if (state === true) {
         loader.show();
+        $(".simres > .btn").attr("disabled", true);
     } else {
         loader.hide();
+        $(".simres > .btn").attr("disabled", false);
     }
     if (!nowtsate && cb !== undefined) {
-        window.setTimeout(cb, 1000);
+        window.setTimeout(cb, 0);
     }
     return nowtsate;
 }
@@ -35,48 +37,28 @@ vis.clear = function (cb) {
     }
 };
 
-vis.cuview = function (id) {
+vis._switchview = function (view, func, ...args) {
     if (!showspinner(true, () => {
-        vis.cuview(id)
+        vis._switchview(view, func, ...args);
     })) {
         return;
     }
-    const me = "cuview"
-    if (vis.currentview !== me && vis.currentview !== "") {
+    if (vis.currentview !== view && vis.currentview !== "") {
         vis.clear();
     }
-    vis.currentview = me;
-    buildCuView(id);
-    showspinner(false);
+    vis.currentview = view;
+    func(args);
+};
+vis.cuview = function (id) {
+    vis._switchview("cuview", buildCuView, id)
 };
 
 vis.bigview = function () {
-    if (!showspinner(true, vis.bigview)) {
-        return;
-    }
-    const me = "bigview"
-    loader.show();
-    if (vis.currentview !== me && vis.currentview !== "") {
-        vis.clear();
-    }
-    vis.currentview = me;
-    buildBigView();
-    showspinner(false);
+    vis._switchview("bigview", buildBigView);
 };
 
 vis.taskmanview = function () {
-    if (!showspinner(true, vis.taskmanview)) {
-        return;
-    }
-    const me = "taskman";
-    loader.show();
-    if (vis.currentview !== me && vis.currentview !== "") {
-        vis.clear();
-    }
-    vis.currentview = me;
-
-    buildTaskManView();
-    showspinner(false);
+    vis._switchview("taskman", buildTaskManView);
 };
 
 function initvis() {
@@ -130,13 +112,25 @@ function TestLiveData() {
     gpustate.children.forEach(_recurse);
 }
 
+let reccount = 0;
+
 function recursive(baseSelection, data, textFunc, verbosity, maxdepth) {
+    let _tidy = function () {
+        reccount--;
+        if (reccount === 0) {
+            console.log("DONE!");
+            showspinner(false);
+        }
+    };
     let _recurse = function (d, idx, selection, depth, depthstring) {
+
         if (d.children === undefined) {
+            _tidy();
             return;
         }
         depth++;
         if (depth > maxdepth) {
+            _tidy();
             return;
         }
 
@@ -146,28 +140,29 @@ function recursive(baseSelection, data, textFunc, verbosity, maxdepth) {
             depthstring += "_?";
         }
 
-        console.log('Building', depth, depthstring);
+        console.log('Building', depth, depthstring, reccount);
 
         let childData = d.children;
         let container = d3.select(this);
         let types = new Set();
 
         childData.forEach((c) => {
-            if ((c.v && c.v > verbosity)) {
+            if (c.v && (c.v > verbosity)) {
                 return;
             }
             types.add(c.type)
         });
+
         let typesWithData = [];
         types.forEach((t) => {
-            let dataFiltered = childData.filter(c => c.type == t);
+            let dataFiltered = childData.filter(c => c.type === t);
             typesWithData.push({type: t, children: dataFiltered});
         });
 
         //for each type of child
         typesWithData.forEach((t) => {
             //Append a bare div of class .child_container
-            let containerDiv = container.selectAll("." + t.type + "_container").data([t])
+            let containerDiv = container.selectAll("." + t.type + "_container").data([t]);
             let containerDivEnter = containerDiv
                 .enter().append("div")
                 .attr("class", (d) => {
@@ -192,16 +187,28 @@ function recursive(baseSelection, data, textFunc, verbosity, maxdepth) {
                     //do the update(merge), and recurse
                     div.merge(divEnter).each(
                         function (a, b, c) {
-                            _recurse.call(this, a, b, c, depth, depthstring);
+                            reccount++
+                            //yield if toplevel div
+                            if (depth <= 2) {
+                                const th = this;
+                                setTimeout(function () {
+                                    _recurse.call(th, a, b, c, depth, depthstring);
+                                }, 0);
+                            } else {
+                                _recurse.call(this, a, b, c, depth, depthstring);
+                            }
                         }
                     );
                 }
             );
-
         });
+        _tidy();
     };
+
+    reccount = 0;
     maxdepth = maxdepth === undefined ? 9999 : maxdepth;
     baseSelection.data([data]).each(function (a, b, c) {
+        reccount++;
         _recurse.call(this, a, b, c, 0, "");
     });
 }
@@ -209,7 +216,6 @@ function recursive(baseSelection, data, textFunc, verbosity, maxdepth) {
 function buildBigView() {
     let container = bigViewCon;
     let current = gpustate;
-
     recursive(container, current, defaultLabel, 3);
 }
 
