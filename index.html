@@ -1,99 +1,95 @@
 <!doctype html>
 <html class="no-js" lang="">
+
 <head>
     <meta charset="utf-8">
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <title></title>
     <meta name="description" content="">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"
-    ">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" ">
 
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
-    <meta http-equiv="Pragma" content="no-cache"/>
-    <meta http-equiv="Expires" content="0"/>
-    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css"
-          integrity="sha384-DNOHZ68U8hZfKXOrtjWvjxusGo9WQnrNx2sqG0tfsghAvtVlRW3tvkXWZh58N9jp"
-          crossorigin="anonymous">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
-          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
-          crossorigin="anonymous">
-
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <link rel="stylesheet" 
+        href="https://use.fontawesome.com/releases/v5.4.1/css/all.css" 
+        integrity="sha384-5sAR7xN1Nv6T6+dT2mhtzEpVJvfS3NScPQTrOxhwjIuvcA67KV2R5Jz6kr4abQsz"
+        crossorigin="anonymous">
+    <link rel="stylesheet" href="css/bootstrap.min.css">
     <link rel="manifest" href="site.webmanifest">
     <link rel="stylesheet" href="css/normalize.css">
     <link rel="stylesheet" href="css/prism.css">
     <link rel="stylesheet" href="css/main.css">
 </head>
+
 <body>
-<!--[if lte IE 9]>
+    <!--[if lte IE 9]>
 <p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade
     your browser</a> to improve your experience and security.</p>
 <![endif]-->
 
-<!-- Navigation -->
-<nav class="navbar navbar-dark navbar-expand-md bg-dark justify-content-center fixed-top">
-    <a href="" class="navbar-brand d-flex w-50 mr-auto">GPUVIS</a>
-    <a href="https://www.student.soc.napier.ac.uk/~40082367/doku.php?id=research:gpuvis"
-       class="navbar-brand d-flex mr-auto btn btn-info"
-       data-toggle="tooltip" title="Visit my Wiki page!">
-        What is this?</a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#collapsingNavbar">
-        <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="navbar-collapse collapse w-100" id="collapsingNavbar">
-        <ul class="navbar-nav mx-auto w-100 justify-content-center">
-            <li class="nav-item active">
-                <span class="nav-link">Program: <span style="font-family: Consolas" id="div_pgrm">none</span></span>
-            </li>
-        </ul>
-        <ul class="nav pageselect navbar-nav ml-auto w-100 justify-content-end">
-            <li class="nav-item" id="nav-loader">
-                <span class="nav-link" data-page="loader">Loader</span>
-            </li>
-            <li class="nav-item" id="nav-asm">
-                <span class="nav-link" data-page="asm">ASM</span>
-            </li>
-            <li class="nav-item" id="nav-sim">
-                <span class="nav-link" data-page="sim">Simulate</span>
-            </li>
-            <li class="nav-item">
-                <span class="nav-link" data-page="">Stats</span>
-            </li>
-        </ul>
+    <!-- Navigation -->
+    <nav class="navbar navbar-dark navbar-expand-md bg-dark justify-content-center fixed-top">
+        <a href="" class="navbar-brand d-flex w-50 mr-auto">GPUVIS</a>
+        <a href="https://www.student.soc.napier.ac.uk/~40082367/doku.php?id=research:gpuvis" class="navbar-brand d-flex mr-auto btn btn-info"
+            data-toggle="tooltip" title="Visit my Wiki page!">
+            What is this?</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#collapsingNavbar">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="navbar-collapse collapse w-100" id="collapsingNavbar">
+            <ul class="navbar-nav mx-auto w-100 justify-content-center">
+                <li class="nav-item active">
+                    <span class="nav-link">Program: <span style="font-family: Consolas" id="div_pgrm">none</span></span>
+                </li>
+            </ul>
+            <ul class="nav pageselect navbar-nav ml-auto w-100 justify-content-end">
+                <li class="nav-item" id="nav-loader">
+                    <span class="nav-link" data-page="loader">Loader</span>
+                </li>
+                <li class="nav-item" id="nav-asm">
+                    <span class="nav-link" data-page="asm">ASM</span>
+                </li>
+                <li class="nav-item" id="nav-sim">
+                    <span class="nav-link" data-page="">Simulate</span>
+                </li>
+                <li class="nav-item">
+                    <span class="nav-link" data-page="">Stats</span>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="alert alert-warning" id="warn_bar" style="display: none">
+        <strong>Warning!</strong> <span id="warn_text">You're dereferencing a null ptr!</span>
+        <button type="button" class="close" aria-label="Close" onclick="div_warn.hide();">
+            <span aria-hidden="true">&times;</span>
+        </button>
     </div>
-</nav>
 
-<div class="alert alert-warning" id="warn_bar" style="display: none">
-    <strong>Warning!</strong> <span id="warn_text">You're dereferencing a null ptr!</span>
-    <button type="button" class="close" aria-label="Close" onclick="div_warn.hide();">
-        <span aria-hidden="true">&times;</span>
-    </button>
-</div>
+    <main role="main" class="container-fluid" id="mainContainer">
+    </main><!-- /.container -->
 
-<main role="main" class="container-fluid" id="mainContainer">
-</main><!-- /.container -->
+    <script src="js/vendor/modernizr-3.5.0.min.js"></script>
+    <script src="js/vendor/jquery-3.3.1.min.js"></script>
+    <script src="js/vendor/msgpack.min.js"></script>
+    <script src="js/vendor/bootstrap.bundle.min.js"></script>
+    <script src="js/vendor/prism.js"></script>
+    <script src="js/plugins.js"></script>
+    <script src="https://d3js.org/d3.v5.js"></script>
+    <script src="js/main.js"></script>
 
-<script src="js/vendor/modernizr-3.5.0.min.js"></script>
-<script src="https://code.jquery.com/jquery-3.2.1.min.js"
-        integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
-<script>window.jQuery || document.write('<script src="js/vendor/jquery-3.2.1.min.js"><\/script>')</script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
-        integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
-        crossorigin="anonymous"></script>
-<script src="js/plugins.js"></script>
-<script src="https://d3js.org/d3.v5.js"></script>
-<script src="js/prism.js"></script>
-<script src="js/main.js"></script>
-
-<!-- Google Analytics: change UA-XXXXX-Y to be your site's ID. -->
-<script>
-    window.ga = function () {
-        ga.q.push(arguments)
-    };
-    ga.q = [];
-    ga.l = +new Date;
-    ga('create', 'UA-XXXXX-Y', 'auto');
-    ga('send', 'pageview')
-</script>
-<script src="https://www.google-analytics.com/analytics.js" async defer></script>
+    <!-- Google Analytics: change UA-XXXXX-Y to be your site's ID. -->
+    <script>
+        window.ga = function () {
+            ga.q.push(arguments)
+        };
+        ga.q = [];
+        ga.l = +new Date;
+        ga('create', 'UA-XXXXX-Y', 'auto');
+        ga('send', 'pageview')
+    </script>
+    <script src="https://www.google-analytics.com/analytics.js" async defer></script>
 </body>
+
 </html>

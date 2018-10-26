@@ -1,6 +1,21 @@
-<p>Hello world! This is GPUVIS</p>
-<button type="button" class="btn btn-secondary" onclick="LoadProgram('data/helloworld.program.json')">Load Program
-</button>
+<h1>Manual file Upload</h1>
+<form method="post" id="filename" name="filename" onsubmit="return uploadFile();">
+  <label>Select a file:</label><br>
+  <input type="file" id="file" name="inputfile" required />
+  <select id="filetypedropdown" name="filetype" required>
+    <option value="RGA_ASM_COMPUTE">GCN Compute Assembly</option>
+    <option value="OCL_SOURCE">OpenCL Kernel code</option>
+    <option value="NA">idk lol</option>
+  </select>
+
+  <input type="submit" value="Upload" />
+</form>
+<br>
+<hr><br>
+<div id="output"></div>
+<br>
+<hr><br>
+<div id="errors"></div>
 <script>
     var url = "js/page_loader.js";
     $.getScript(url).done(function () {
