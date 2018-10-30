@@ -35,26 +35,28 @@ function startup() {
         return;
     }
     btn_diss.removeAttr('disabled');
+    ShowKernel(program);
     //  $("#comp_div").text(program.ops);
     //  $("#dissas_div").text("Stub");
 }
 
-function ShowKernel(data) {
-  
-  
-  function hi(ln){
-let srcln = lines[ln][0];
-let asmlineMin = lines[ln][1];
-let asmlineMax = (ln+1 < lines.length ? lines[ln+1][1] : 500);
-$("pre:eq( 0 )").attr('data-line', (srcln+1));
-$("pre:eq( 1 )").attr('data-line', (asmlineMin+1)+'-'+(asmlineMax));
-Prism.highlightElement($("code")[0]);
-Prism.highlightElement($("code")[1]);
+var interval, a;
+function Corralated() {
+    function hi(ln) {
+        let srcln = lines[ln][0];
+        let asmlineMin = lines[ln][1];
+        let asmlineMax = (ln + 1 < lines.length ? lines[ln + 1][1] : 500);
+        $("pre:eq( 0 )").attr('data-line', (srcln + 1));
+        $("pre:eq( 1 )").attr('data-line', (asmlineMin + 1) + '-' + (asmlineMax));
+        Prism.highlightElement($("code")[0]);
+        Prism.highlightElement($("code")[1]);
+    }
+    a = 0;
+    var lines = decoded_data.lines;
+    interval = setInterval(() => { a = (a >= lines.length ? 0 : a + 1); console.log(a, lines.length, lines[a]); hi(a); }, 1000);
 }
-var a = 0;
-var lines = decoded_data.lines;
-var interval = setInterval(()=>{a = (a >= lines.length ? 0 : a+1); console.log(a, lines.length, lines[a]);hi(a);}, 1000);
-  
+
+function ShowKernel(data) {
     // ParseAsm(data.kernel.asm);
     div_coderow.empty();
     let blocks = [];
@@ -67,7 +69,7 @@ var interval = setInterval(()=>{a = (a >= lines.length ? 0 : a+1); console.log(a
     }
 
     if (data.ops !== undefined) {
-        blocks.push({ title: "kernel_asm", text: data.ops.reduce((p, c) => p += (c.op + " " + c.oa.join(" ")+"\n") , "") });
+        blocks.push({ title: "kernel_asm", text: data.ops.reduce((p, c) => p += (c.op + " " + c.oa.join(" ") + "\n"), "") });
     }
     let bw = Math.floor(12.0 / blocks.length);
     for (let o of blocks) {
@@ -100,10 +102,6 @@ function ParseAsmFromRaw(asm) {
     return obj;
 };
 
-
-function Refresh() {
-    ShowKernel(program);
-}
 
 function isRegister(str) {
     if (str.startsWith("0x")) {
