@@ -460,6 +460,19 @@ pre {
 }
 
 
+.editor { 
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    max-height: 800px;
+    height: 800px;
+}
 
 
 
+.marker_row {
+    background-color: rgba(196, 184, 23, 0.836);
+    position:absolute;
+}
