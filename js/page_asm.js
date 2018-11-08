@@ -68,6 +68,7 @@ function getCorrelatedSrc(asmLine) {
 function ShowKernel(data) {
     div_coderow.empty();
     let blocks = [];
+    ace_editors = [];
     if (data.source !== undefined) {
         blocks.push({ title: "kernel_source", text: data.source });
     } else {
@@ -103,6 +104,7 @@ function ShowKernel(data) {
 
 function CursorChange(a, b) {
     //Clear all highlights
+    console.info(456);
     markers_a.forEach((e) => { ace_editors[0].session.removeMarker(e); });
     markers_b.forEach((e) => { ace_editors[1].session.removeMarker(e); });
     markers_a = [];
@@ -157,13 +159,37 @@ function SourceChanged() {
     }
 }
 
-function uploadFile() {
-    log("", "uploading " + $("#file")[0].value);
-    var file_data = new FormData(document.getElementById('filename'));
+function UploadDone2(data) {
+    log("", "Upload Done, got Response");
+    result_data = data;
+    var reader = new FileReader();
+    reader.addEventListener("loadend", function () {
+        decoded_data = msgpack.decode(new Uint8Array(reader.result));
+        log("", "Decoded Result");
+        program = decoded_data;
+        startup();
+    });
+    try {
+        reader.readAsArrayBuffer(result_data);
+    } catch (e) {
+        log("", "Can't Decode Results :(");
+    }
+}
+
+function Compile() {
+    log("", "uploading code");
+    //var file_data = new FormData(document.getElementById('filename'));
+    let formData = new FormData();
+    formData.append("filetype", "OCL_SOURCE");
+    // JavaScript file-like object
+    var content = ace_editors[0].getValue()
+    var blob = new Blob([content], { type: "text/xml" });
+    formData.append("inputfile", blob)
+
     var aj = $.ajax({
         url: "/upload",
         type: "POST",
-        data: file_data,
+        data: formData,
         processData: false,
         contentType: false,
         cache: false,
@@ -177,9 +203,13 @@ function uploadFile() {
             }
             return myXhr;
         },
-        error: (request, status, errorThrown) => log(request.status, errorThrown, true),
+        error: (request, status, errorThrown) => log(request.status, "error " + request.status + " " + errorThrown, true),
     })
-    aj.done(UploadDone);
+    aj.done(UploadDone2);
     return false;
 }
 
+
+function log(code, text, fromserver = false) {
+    $("#errors").append((fromserver ? "<b>" : "") + "<br>" + new Date().toLocaleTimeString() + ", [" + code + "] " + text + (fromserver ? "</b>" : ""));
+}

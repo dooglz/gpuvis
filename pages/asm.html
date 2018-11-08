@@ -18,9 +18,21 @@
 
 <hr>
 
-<div class="row" id="coderow"></div>
+<div class="row" id="coderow" class="coderow"></div>
+<div class="row">
+    <div class="col-lg-4">
+        <button class="form-check" onclick="Compile()">
+            Compile
+        </button>
+    </div>
+</div>
 <div class="row" id="statsrow"></div>
-
+<hr><br>
+<div id="output"></div>
+<br>
+<hr><br>
+<div id="errors"></div>
+<hr><br>
 <script src="/js/vendor/ace-min/ace.js" type="text/javascript" charset="utf-8"></script>
 
 <script>

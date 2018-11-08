@@ -461,7 +461,7 @@ pre {
 
 
 .editor { 
-    position: absolute;
+    
     top: 0;
     right: 0;
     bottom: 0;
@@ -469,7 +469,9 @@ pre {
     max-height: 800px;
     height: 800px;
 }
+.coderow{
 
+}
 
 
 .marker_row {
