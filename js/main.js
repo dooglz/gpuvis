@@ -12,7 +12,7 @@ $(document).ready(function () {
     // $(".pageselect .nav-item ").first().click();
     $(".pageselect .nav-item ")[0].click();
 
-   // skip(3);
+    // skip(3);
 });
 
 $(".pageselect .nav-item").each(function () {
@@ -28,14 +28,18 @@ $(".pageselect .nav-item").each(function () {
 });
 
 let LoadCallback = nop;
-
+let ActivePage;
+function ReloadPage() {
+    LoadPage(ActivePage, () => { });
+}
 function LoadPage(page, extracallback) {
     extracallback = (extracallback ? extracallback : nop);
     div_warn.hide();
     page = "pages/" + page + ".html";
     console.log("Loading Page", page);
-    LoadCallback = (() => {
+    LoadCallback = ((page) => {
         extracallback();
+        ActivePage = page;
         LoadCallback = nop;
     });
     div_main.load(page, function (responseTxt, statusTxt, xhr) {

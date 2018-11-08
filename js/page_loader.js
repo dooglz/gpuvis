@@ -1,6 +1,6 @@
 function main_loader() {
     console.log("Hello loader");
-    LoadCallback();
+    LoadCallback("loader");
 }
 
 function LoadProgram(pgrm,callback){

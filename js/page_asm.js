@@ -6,6 +6,14 @@ var btn_diss;
 var show_regs = true;
 var simplifyConstants = true;
 var Range = ace.require('ace/range').Range;
+clearInterval(interval);
+var interval = undefined;
+var a = 0;
+var markers_a = []
+var markers_b = [];
+var ace_editors = [];
+var correlatedTable = [];
+var toggleobj;
 
 function main_asm() {
     console.log("Hello ASM");
@@ -14,8 +22,9 @@ function main_asm() {
     div_coderow = $("#coderow");
     btn_diss = $("#btn_diss");
     div_statsrow = $("#statsrow");
+    toggleobj = btn_diss.bootstrapToggle();
+    LoadCallback("asm");
     startup();
-    LoadCallback();
 }
 
 function startup() {
@@ -25,48 +34,42 @@ function startup() {
         return;
     }
     btn_diss.removeAttr('disabled');
+
+    if (decoded_data.lines) {
+        correlatedTable = [];
+        for (let i = 0; i < decoded_data.lines.length; i++) {
+            let srcline = decoded_data.lines[i][0];
+            let asmlineMin = decoded_data.lines[i][1];
+            let asmlineMax = (i + 1 < decoded_data.lines.length ? decoded_data.lines[i + 1][1] - 1 : 1000);
+            srcline--;
+            asmlineMin = Math.max(asmlineMin--, 0);
+            asmlineMax = Math.max(asmlineMax--, 0);
+            correlatedTable[srcline] = correlatedTable[srcline] ? correlatedTable[srcline] : [];
+            correlatedTable[srcline].push({ asmlineMin: asmlineMin, asmlineMax: asmlineMax });
+        }
+    }
     ShowKernel(program);
-    //  $("#comp_div").text(program.ops);
-    //  $("#dissas_div").text("Stub");
 }
 
-var interval, a;
-var marker_a, marker_b;
-function Corralated() {
-    clearInterval(interval);
-    function hi(ln) {
-        if(lines.length <= ln){return;}
-        let srcln = lines[ln][0];
-        let asmlineMin = lines[ln][1]; 
-        let asmlineMax = (ln + 1 < lines.length ? lines[ln + 1][1] : 500);
 
-        srcln --;
-        asmlineMin = Math.max(asmlineMin--, 0);
-        asmlineMax = Math.max(asmlineMax--, 0);
-
-        console.log(a, srcln,asmlineMin, asmlineMax);
-        ace_editors[0].session.removeMarker(marker_a);
-        ace_editors[1].session.removeMarker(marker_b);
-        marker_a = ace_editors[0].session.addMarker(new Range(srcln, 0, srcln, 200), "marker_row", "fullLine", true);
-        marker_b = ace_editors[1].session.addMarker(new Range(asmlineMin, 0, (asmlineMax), 200), "marker_row", "fullLine", true);
-        //  $("pre:eq( 0 )").attr('data-line', (srcln + 1));
-        //  $("pre:eq( 1 )").attr('data-line', (asmlineMin + 1) + '-' + (asmlineMax));
-        // Prism.highlightElement($("code")[0]);
-        //  Prism.highlightElement($("code")[1]);
-    }
-    a = 0;
-    var lines = decoded_data.lines;
-    interval = setInterval(() => { a = (a >= lines.length ? 0 : a + 1); hi(a); }, 1000);
+function getCorrelatedAsm(srcline) {
+    return correlatedTable[srcline];
+}
+function getCorrelatedSrc(asmLine) {
+    return correlatedTable.findIndex((e) => {
+        if (e == undefined) { return false; }
+        return e.find((range) => {
+            return range.asmlineMin <= asmLine && range.asmlineMax >= asmLine;
+        }
+        )
+    });
 }
 
 function ShowKernel(data) {
-    // ParseAsm(data.kernel.asm);
     div_coderow.empty();
     let blocks = [];
-
     if (data.source !== undefined) {
         blocks.push({ title: "kernel_source", text: data.source });
-        // Prism.highlightElement(div_kernel_source[0]);
     } else {
         console.error("No kernel code!");
     }
@@ -75,35 +78,84 @@ function ShowKernel(data) {
     } else {
         console.error("No asm code!");
     }
-    let bw = Math.floor(12.0 / blocks.length);
-
-
-
+    let bw = Math.floor(10.0 / blocks.length);
     for (let o of blocks) {
         let div = $("<div/>", { class: "col col-lg-" + Math.min(bw, o.fw || bw) });
         div.append($("<p>" + o.title + "</p>"));
         let pre = $('<div id="pre_' + o.title + '" class="editor"/>').appendTo(div);
-        // pre.html(o.text);
         div_coderow.append(div);
         editor = ace.edit(pre[0]);
+        editor.tag = o.title;
+        editor.session.tag = o.title;
         editor.setTheme("ace/theme/github");
         editor.session.setMode("ace/mode/c_cpp");
-        editor.setValue(o.text);
+        editor.setValue(o.text, 1);
         ace_editors.push(editor);
-        //let code = $('<code contenteditable="true" id="code_'+o.title+'"/>', { class: "language-C line-numbers" }).appendTo(pre);
-        //code.text(o.text);
-        //  Prism.highlightElement(code[0]);
-
     }
+    ace_editors[0].session.setOptions({ wrap: false });
+    ace_editors[1].session.setOptions({ wrap: false });
+    ace_editors[1].setOptions({ readOnly: true });
+    ace_editors[0].selection.on("changeCursor", CursorChange);
+    ace_editors[1].selection.on("changeCursor", CursorChange);
+    ace_editors[0].session.doc.on("change", SourceChanged);
+}
 
-    {
-        let div = $("<div/>", { class: "col col-lg-4" });
-        // div.text(JSON.stringify(data.kernel.asm.metrics));
-        div_coderow.append(div);
+
+function CursorChange(a, b) {
+    //Clear all highlights
+    markers_a.forEach((e) => { ace_editors[0].session.removeMarker(e); });
+    markers_b.forEach((e) => { ace_editors[1].session.removeMarker(e); });
+    markers_a = [];
+    markers_b = [];
+    if (!btn_diss.is(':checked') || !b || !b.session) {
+        return;
+    }
+    console.info(1234);
+    const who = b.session.tag;
+    const cp0 = ace_editors[0].selection.getCursor().row;
+    const cp1 = ace_editors[1].selection.getCursor().row;
+    if (who === "kernel_source") {
+        console.info(1, cp0, cp1);
+        let asm = getCorrelatedAsm(cp0);
+        if (asm !== undefined) {
+            asm.forEach((e) => {
+                markers_b.push(ace_editors[1].session.addMarker(new Range(e.asmlineMin, 0, (e.asmlineMax), 200), "marker_row", "fullLine", true))
+            });
+        } else {
+            markers_a.push(ace_editors[0].session.addMarker(new Range(cp0, 0, cp0, 200), "marker_row_bad", "fullLine", true));
+        }
+    } else if (who === "kernel_asm") {
+        console.info(2);
+        let srcline = getCorrelatedSrc(cp1);
+        if (srcline !== undefined) {
+            markers_a.push(ace_editors[0].session.addMarker(new Range(srcline, 0, srcline, 200), "marker_row", "fullLine", true));
+            //mark other asm lines that point to this src:
+            let asm = getCorrelatedAsm(srcline);
+            if (asm !== undefined) {
+                asm.forEach((e) => {
+                    markers_b.push(ace_editors[1].session.addMarker(new Range(e.asmlineMin, 0, (e.asmlineMax), 200), "marker_row", "fullLine", true))
+                });
+            }
+        } else {
+            markers_b.push(ace_editors[1].session.addMarker(new Range(cp1, 0, cp1, 200), "marker_row_bad", "fullLine", true));
+        }
     }
 }
 
-var ace_editors = [];
+function SourceChanged() {
+    if (ace_editors[0].getValue() === decoded_data.source) {
+        $("div.cover").remove();
+        toggleobj.bootstrapToggle('enable');
+    } else {
+        toggleobj.bootstrapToggle('off');
+        toggleobj.bootstrapToggle('disable');
+        var cover = $("<div class=\"cover\"/>");
+        cover.click(function (event) {
+            event.stopPropagation();
+        });
+        ace_editors[1].container.appendChild(cover[0]);
+    }
+}
 
 function uploadFile() {
     log("", "uploading " + $("#file")[0].value);
@@ -130,3 +182,4 @@ function uploadFile() {
     aj.done(UploadDone);
     return false;
 }
+
