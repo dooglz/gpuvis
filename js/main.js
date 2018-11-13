@@ -10,9 +10,9 @@ $(document).ready(function () {
     div_main = $("#mainContainer");
     div_warn = $("#warn_bar");
     // $(".pageselect .nav-item ").first().click();
-    $(".pageselect .nav-item ")[0].click();
+    //$(".pageselect .nav-item ")[0].click();
 
-    // skip(3);
+    skip(2);
 });
 
 $(".pageselect .nav-item").each(function () {
@@ -83,9 +83,9 @@ function skip(to, stage) {
             if (to < 1) {
                 return;
             }
-            LoadProgram('data/helloworld.program.json', () => {
-                skip(to, 2)
-            });
+            //LoadProgram('data/helloworld.program.json', () => {
+            skip(to, 2)
+            // });
             break;
         case 2:
             if (to < 2) {

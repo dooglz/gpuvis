@@ -478,6 +478,10 @@ pre {
     background-color: rgba(108, 253, 173, 0.438);
     position:absolute;
 }
+.marker_row_alt {
+    background-color: rgba(141, 224, 245, 0.322)
+    position:absolute;
+}
 .marker_row_bad {
     background-color: rgba(233, 108, 99, 0.4);
     position:absolute;

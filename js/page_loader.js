@@ -4,6 +4,7 @@ function main_loader() {
 }
 
 function LoadProgram(pgrm,callback){
+  /*
     $.getJSON(pgrm)
         .done(function (data) {
             $("#div_pgrm").text(data.name);
@@ -14,6 +15,16 @@ function LoadProgram(pgrm,callback){
         .fail(function () {
             console.error("Can't get Program!");
         });
+        */
+       $.get(pgrm, 'text')
+       .done(function (data) {
+          // $("#div_pgrm").text(data.name);
+           console.log("pgrm: ",pgrm, " Loaded")
+           callback(data);
+       })
+       .fail(function () {
+           console.error("Can't get Program!");
+       });
 }
 
 
