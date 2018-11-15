@@ -253,7 +253,7 @@ function log(code, text, fromserver = false) {
     $("#errors").append((fromserver ? "<b>" : "") + "<br>" + new Date().toLocaleTimeString() + ", [" + code + "] " + text + (fromserver ? "</b>" : ""));
 }
 
-let chart1;
+var chart1;
 function doChart() {
     $("#chart1").empty().html("<h4>Number of ASM ops per Source Line</h4><svg/>")
     //Keys are Src line, values are number of correlated asm lines.
@@ -264,7 +264,7 @@ function doChart() {
     chartdata = (chartdata.map((e, i) => ({ id: (i + 1), value: e }))).filter(e => e);
     chart1 = new d3_barchart($("#chart1 svg"), chartdata);
 }
-let chart2;
+var chart2;
 function doChart2() {
     $("#chart2").empty().html("<h4>ASM types</h4><svg/>")
     //TODO make server do this
@@ -275,7 +275,7 @@ function doChart2() {
         types[t]++;
     });
     let dataArray = [];
-    Object.keys(types).forEach((e)=>{dataArray.push({ id: e, value: types[e] })})
+    Object.keys(types).forEach((e) => { dataArray.push({ id: e, value: types[e] }) })
 
     chart2 = new d3_piechart($("#chart2 svg"), dataArray);
 }

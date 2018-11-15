@@ -27,7 +27,7 @@ $(".pageselect .nav-item").each(function () {
     }
 });
 
-let LoadCallback = nop;
+var LoadCallback = nop;
 let ActivePage;
 function ReloadPage() {
     LoadPage(ActivePage, () => { });
@@ -37,11 +37,12 @@ function LoadPage(page, extracallback) {
     div_warn.hide();
     page = "pages/" + page + ".html";
     console.log("Loading Page", page);
-    LoadCallback = ((page) => {
+    LoadCallback = (page) => {
         extracallback();
         ActivePage = page;
-        LoadCallback = nop;
-    });
+        //LoadCallback = nop;
+        console.info("Load Callback", page);
+    };
     div_main.load(page, function (responseTxt, statusTxt, xhr) {
         if (statusTxt == "success")
             console.log(page, "External content loaded successfully!");
