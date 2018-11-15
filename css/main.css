@@ -479,7 +479,7 @@ pre {
     position:absolute;
 }
 .marker_row_alt {
-    background-color: rgba(141, 224, 245, 0.322)
+    background-color: rgba(141, 224, 245, 0.322);
     position:absolute;
 }
 .marker_row_bad {
@@ -498,4 +498,16 @@ pre {
     top:0;bottom:0;right:0;left:0;
     background:rgba(200,200,200,0.4);
     z-index:100;
+}
+
+.svgchart{
+    background-color: aquamarine;
+    border: #000;
+    border-width: 1px;
+    border-style: solid;
+}
+
+.svgchart svg{
+    min-height: 300px;
+    width: 100%;
 }

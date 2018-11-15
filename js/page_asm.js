@@ -49,10 +49,11 @@ function startup() {
 
     if (decoded_data.lines) {
         correlatedTable = [];
+        const lastline = decoded_data.ops.length;
         for (let i = 0; i < decoded_data.lines.length; i++) {
             let srcline = decoded_data.lines[i][0];
             let asmlineMin = decoded_data.lines[i][1];
-            let asmlineMax = (i + 1 < decoded_data.lines.length ? decoded_data.lines[i + 1][1] - 1 : 1000);
+            let asmlineMax = (i + 1 < decoded_data.lines.length ? decoded_data.lines[i + 1][1] - 1 : lastline);
             srcline--;
             asmlineMin = Math.max(asmlineMin--, 0);
             asmlineMax = Math.max(asmlineMax--, 0);
@@ -104,6 +105,8 @@ function ShowKernel(data) {
     }
     if (data.ops !== undefined) {
         blocks.push({ title: "kernel_asm", text: data.ops.reduce((p, c) => p += (c.op + " " + c.oa.join(" ") + "\n"), "") });
+        doChart();
+        doChart2();
     } else {
         console.error("No asm code!");
     }
@@ -248,4 +251,31 @@ function Compile() {
 
 function log(code, text, fromserver = false) {
     $("#errors").append((fromserver ? "<b>" : "") + "<br>" + new Date().toLocaleTimeString() + ", [" + code + "] " + text + (fromserver ? "</b>" : ""));
+}
+
+let chart1;
+function doChart() {
+    $("#chart1").empty().html("<h4>Number of ASM ops per Source Line</h4><svg/>")
+    //Keys are Src line, values are number of correlated asm lines.
+    let chartdata = correlatedTable.map((e) => {
+        return e.reduce((ea, cv) => ea += (cv.asmlineMax - cv.asmlineMin), 0)
+    })
+    //Array of {id: src, value: asmcount}
+    chartdata = (chartdata.map((e, i) => ({ id: (i + 1), value: e }))).filter(e => e);
+    chart1 = new d3_barchart($("#chart1 svg"), chartdata);
+}
+let chart2;
+function doChart2() {
+    $("#chart2").empty().html("<h4>ASM types</h4><svg/>")
+    //TODO make server do this
+    let types = {};
+    decoded_data.ops.forEach((e) => {
+        let t = e.op[0];
+        if (!types[t]) { types[t] = 0; }
+        types[t]++;
+    });
+    let dataArray = [];
+    Object.keys(types).forEach((e)=>{dataArray.push({ id: e, value: types[e] })})
+
+    chart2 = new d3_piechart($("#chart2 svg"), dataArray);
 }
