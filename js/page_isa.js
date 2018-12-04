@@ -54,13 +54,19 @@ function isa_dload() {
 
 function isa_dload_c() {
     let str = "";
-    str += "//#define REGS(...) std::vector<uint8_t>({__VA_ARGS__})\n//#define OP(opcode, type, branch, ticks, help, r, w){ #opcode, opcode, type, branch, ticks, #help, r, w }\n"
+    str += "//#define REGS(...) std::vector<uint8_t>({__VA_ARGS__})\n//#define OP(opcode, type, branch, ticks, help, r, w){ #opcode, opcode, type, branch, ticks, #help, r, w }\n\n"
+    str += "enum OPCODE_TYPE { ";
+    for (let ot in loaded_isa.optypes){
+        str += (ot+"="+loaded_isa.optypes[ot]+",");
+    }
+    str = str.slice(0, -1);
+    str += " };\n\n"
     str += "enum ISAe {";
     loaded_isa.codes.forEach(element => {
         str += element.o + ",";
     });
     str = str.slice(0, -1);
-    str += "};\nconst operation ISA[] = {\n";
+    str += "};\n\nconst operation ISA[] = {\n";
     loaded_isa.codes.forEach(e => {
         str += "OP(" + e.o + ", " + e.t + ", " + e.b + ", " + e.c + "," + e.h + ", REGS(" + (e.r) + "), REGS(" + (e.w) + ")),\n";
     });
