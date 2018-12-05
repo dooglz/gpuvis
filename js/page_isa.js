@@ -34,11 +34,7 @@ function isa_Loadin(data) {
         }));
         table.append(row);
     });
-
-
     let div = $("#b1").append(table);
-
-
 }
 
 function isa_dload() {
@@ -56,8 +52,8 @@ function isa_dload_c() {
     let str = "";
     str += "//#define REGS(...) std::vector<uint8_t>({__VA_ARGS__})\n//#define OP(opcode, type, branch, ticks, help, r, w){ #opcode, opcode, type, branch, ticks, #help, r, w }\n\n"
     str += "enum OPCODE_TYPE { ";
-    for (let ot in loaded_isa.optypes){
-        str += (ot+"="+loaded_isa.optypes[ot]+",");
+    for (let ot in loaded_isa.optypes) {
+        str += (ot + "=" + loaded_isa.optypes[ot] + ",");
     }
     str = str.slice(0, -1);
     str += " };\n\n"

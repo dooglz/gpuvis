@@ -77,7 +77,6 @@ function getCorrelatedAsm(srcline_start, srcline_end) {
 }
 function getCorrelatedSrc(asmLine_start, asmLine_end) {
     if (asmLine_end === undefined) { asmLine_end = asmLine_start; }
-
     let indexes = [];
     correlatedTable.forEach(
         (e, i) => {
@@ -219,7 +218,7 @@ function Compile() {
     log("", "uploading code");
     //var file_data = new FormData(document.getElementById('filename'));
     let formData = new FormData();
-    formData.append("filetype", "OCL_SOURCE");
+    formData.append("filetype", $("#codetypedropdown").val());
     // JavaScript file-like object
     var content = ace_editors[0].getValue()
     var blob = new Blob([content], { type: "text/xml" });

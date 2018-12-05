@@ -21,9 +21,26 @@
 <div class="row" id="coderow" class="coderow"></div>
 <div class="row">
     <div class="col-lg-4">
-        <button class="form-check" onclick="Compile()">
-            Compile
-        </button>
+       
+            <div class="form-row">
+                <div class="col">
+                    <select id="codetypedropdown" name="filetype" required>
+                        <option value="OCL_SOURCE">OpenCL Kernel code</option>
+                        <option value="GLSL_VERT_SOURCE">GLSL Vert</option>
+                        <option value="GLSL_FRAG_SOURCE">GLSL Frag</option>
+                        <option value="GLSL_GEOM_SOURCE">GLSL Geom</option>
+                        <option value="GLSL_COMP_SOURCE">GLSL Compute</option>
+                        <option value="GLSL_TESC_SOURCE">GLSL Tess Ctrl</option>
+                        <option value="GLSL_TESE_SOURCE">GLSL Tess Eval</option>
+                    </select>
+                </div>
+                <div class="col">
+                    <button class="form-check" onclick="Compile()">
+                        Compile
+                    </button>
+                </div>
+            </div>
+        
     </div>
 </div>
 <div class="row" id="statsrow"></div>
