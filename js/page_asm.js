@@ -35,8 +35,9 @@ function startup() {
     }*/
     if (!is(program)) {
         decoded_data = {};
-        decoded_data.lines = [];
-        decoded_data.ops = [];
+        decoded_data.programs = [];
+        // decoded_data.lines = [];
+        // decoded_data.ops = [];
         program = decoded_data;
         LoadProgram('data/sort.cl.txt', (d) => {
             decoded_data.source = d;
@@ -47,18 +48,22 @@ function startup() {
 
     btn_diss.removeAttr('disabled');
 
-    if (decoded_data.lines) {
+    if (decoded_data.programs.length > 0) {
         correlatedTable = [];
-        const lastline = decoded_data.ops.length;
-        for (let i = 0; i < decoded_data.lines.length; i++) {
-            let srcline = decoded_data.lines[i][0];
-            let asmlineMin = decoded_data.lines[i][1];
-            let asmlineMax = (i + 1 < decoded_data.lines.length ? decoded_data.lines[i + 1][1] - 1 : lastline);
-            srcline--;
-            asmlineMin = Math.max(asmlineMin--, 0);
-            asmlineMax = Math.max(asmlineMax--, 0);
-            correlatedTable[srcline] = correlatedTable[srcline] ? correlatedTable[srcline] : [];
-            correlatedTable[srcline].push({ asmlineMin: asmlineMin, asmlineMax: asmlineMax });
+        let myOffset = 3;
+        for (let pgrm of program.programs) {
+            const lastline = pgrm.ops.length;
+            for (let i = 0; i < pgrm.lines.length; i++) {
+                let srcline = pgrm.lines[i][0];
+                let asmlineMin = pgrm.lines[i][1];
+                let asmlineMax = (i + 1 < pgrm.lines.length ? pgrm.lines[i + 1][1] - 1 : lastline);
+                srcline--;
+                asmlineMin = Math.max(asmlineMin--, 0);
+                asmlineMax = Math.max(asmlineMax--, 0);
+                correlatedTable[srcline] = correlatedTable[srcline] ? correlatedTable[srcline] : [];
+                correlatedTable[srcline].push({ asmlineMin: (asmlineMin + myOffset), asmlineMax: (asmlineMax + myOffset) });
+            }
+            myOffset += (pgrm.ops.length + 3);
         }
     }
     ShowKernel(program);
@@ -97,18 +102,34 @@ function ShowKernel(data) {
     div_coderow.empty();
     let blocks = [];
     ace_editors = [];
+
     if (data.source !== undefined) {
         blocks.push({ title: "kernel_source", text: data.source });
     } else {
-        console.error("No kernel code!");
+        console.error("No kernel source!");
     }
-    if (data.ops !== undefined) {
-        blocks.push({ title: "kernel_asm", text: data.ops.reduce((p, c) => p += (c.op + " " + c.oa.join(" ") + "\n"), "") });
+
+    let hasASM = false;
+    let asmtext = "";
+    for (let pgrm of data.programs) {
+        if (pgrm.ops === undefined) {
+            console.error("No kernel asm!", pgrm);
+        } else {
+            hasASM = true;
+            asmtext += "\n--------- " + pgrm.niceName + " --------\n\n";
+            asmtext += pgrm.ops.reduce((p, c) => p += (c.op + " " + c.oa.join(" ") + "\n"), "");
+        }
+    }
+
+    if (hasASM) {
+        blocks.push({ title: "kernel_asm", text: asmtext });
         doChart();
         doChart2();
     } else {
         console.error("No asm code!");
+        blocks.push({ title: "kernel_asm", text: "compile to see ASM" });
     }
+
     let bw = Math.floor(10.0 / blocks.length);
     for (let o of blocks) {
         let div = $("<div/>", { class: "col col-lg-" + Math.min(bw, o.fw || bw) });
@@ -120,15 +141,16 @@ function ShowKernel(data) {
         editor.session.tag = o.title;
         editor.setTheme("ace/theme/github");
         editor.session.setMode("ace/mode/c_cpp");
+        editor.session.setOptions({ wrap: false });
         editor.setValue(o.text, 1);
+        editor.selection.on("changeCursor", CursorChange);
         ace_editors.push(editor);
     }
-    ace_editors[0].session.setOptions({ wrap: false });
-    ace_editors[1].session.setOptions({ wrap: false });
-    ace_editors[1].setOptions({ readOnly: true });
-    ace_editors[0].selection.on("changeCursor", CursorChange);
-    ace_editors[1].selection.on("changeCursor", CursorChange);
+
+    //src editor
     ace_editors[0].session.doc.on("change", SourceChanged);
+    //asm editor
+    ace_editors[1].setOptions({ readOnly: true });
 }
 
 
@@ -205,6 +227,10 @@ function UploadDone2(data) {
         decoded_data = msgpack.decode(new Uint8Array(reader.result));
         log("", "Decoded Result");
         program = decoded_data;
+
+        for (let pgrm of program.programs) {
+            pgrm.niceName = pgrm.name.replace('gfx900_', '');
+        }
         startup();
     });
     try {
@@ -268,11 +294,13 @@ function doChart2() {
     $("#chart2").empty().html("<h4>ASM types</h4><svg/>")
     //TODO make server do this
     let types = {};
-    decoded_data.ops.forEach((e) => {
-        let t = e.op[0];
-        if (!types[t]) { types[t] = 0; }
-        types[t]++;
-    });
+    for (let pgrm of program.programs) {
+        pgrm.ops.forEach((e) => {
+            let t = e.op[0];
+            if (!types[t]) { types[t] = 0; }
+            types[t]++;
+        });
+    }
     let dataArray = [];
     Object.keys(types).forEach((e) => { dataArray.push({ id: e, value: types[e] }) })
 
