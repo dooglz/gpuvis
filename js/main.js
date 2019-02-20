@@ -20,6 +20,10 @@ function Warn(str) {
     div_warn.show();
 }
 
+function log(text, fromserver = false) {
+    $("#outputlogbox").append((fromserver ? "<b>" : "") + "<br>" + new Date().toLocaleTimeString() + ", "  + text + (fromserver ? "</b>" : ""));
+}
+
 function is(v) {
     let r = false;
     r |= (typeof v === "undefined");

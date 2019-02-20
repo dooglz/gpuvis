@@ -16,7 +16,6 @@ var correlatedTable = [];
 var toggleobj;
 
 function main_asm() {
-    console.log("Hello ASM");
     div_kernel_source = $("#kernel_source");
     div_kernel_asm = $("#kernel_asm");
     div_coderow = $("#coderow");
@@ -132,7 +131,7 @@ function ShowKernel(data) {
         doChart();
         doChart2();
     } else {
-        console.error("No asm code!");
+        console.info("program has no asm code");
         blocks.push({ title: "kernel_asm", text: "compile to see ASM" });
     }
 
@@ -226,12 +225,12 @@ function SourceChanged() {
 }
 
 function UploadDone2(data) {
-    log("", "Upload Done, got Response");
+    log("Upload Done, got Response");
     result_data = data;
     var reader = new FileReader();
     reader.addEventListener("loadend", function () {
         decoded_data = msgpack.decode(new Uint8Array(reader.result));
-        log("", "Decoded Result");
+        log("Decoded server packet");
         program = decoded_data;
 
         for (let pgrm of program.programs) {
@@ -242,12 +241,12 @@ function UploadDone2(data) {
     try {
         reader.readAsArrayBuffer(result_data);
     } catch (e) {
-        log("", "Can't Decode Results :(");
+        log("Can't Decode Results :(");
     }
 }
 
 function Compile() {
-    log("", "uploading code");
+    log("uploading code");
     //var file_data = new FormData(document.getElementById('filename'));
     let formData = new FormData();
     formData.append("filetype", $("#codetypedropdown").val());
@@ -273,16 +272,14 @@ function Compile() {
             }
             return myXhr;
         },
-        error: (request, status, errorThrown) => log(request.status, "error " + request.status + " " + errorThrown, true),
+        error: (request, status, errorThrown) => log("error " + request.status + " " + errorThrown, true),
     })
     aj.done(UploadDone2);
     return false;
 }
 
 
-function log(code, text, fromserver = false) {
-    $("#errors").append((fromserver ? "<b>" : "") + "<br>" + new Date().toLocaleTimeString() + ", [" + code + "] " + text + (fromserver ? "</b>" : ""));
-}
+
 
 var chart1;
 function doChart() {

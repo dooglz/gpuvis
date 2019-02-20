@@ -1,6 +1,6 @@
 ====== GPUVIS ======
 
-Live demo: https://dooglz.github.io/gpuvis/
+Live demo: https://gpuvis.napier.ac.uk
 
 Code repo: https://github.com/dooglz/gpuvis
 
