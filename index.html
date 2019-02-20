@@ -16,7 +16,6 @@
         crossorigin="anonymous">
     <link rel="stylesheet" href="css/bootstrap.min.css">
     <link rel="stylesheet" href="css/bootstrap-toggle.min.css">
-    <link rel="manifest" href="site.webmanifest">
     <link rel="stylesheet" href="css/normalize.css">
     <link rel="stylesheet" href="css/prism.css">
     <link rel="stylesheet" href="css/main.css">
@@ -38,28 +37,6 @@
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="navbar-collapse collapse w-100" id="collapsingNavbar">
-            <ul class="navbar-nav mx-auto w-100 justify-content-center">
-                <li class="nav-item active">
-                    <span class="nav-link">Program: <span style="font-family: Consolas" id="div_pgrm">none</span></span>
-                </li>
-            </ul>
-            <ul class="nav pageselect navbar-nav ml-auto w-100 justify-content-end">
-                <li class="nav-item" id="nav-loader">
-                    <span class="nav-link" data-page="loader">Loader</span>
-                </li>
-                <li class="nav-item" id="nav-asm">
-                    <span class="nav-link" data-page="asm">ASM</span>
-                </li>
-                <li class="nav-item" id="nav-asm">
-                    <span class="nav-link" data-page="isa">ISA</span>
-                </li>
-                <li class="nav-item" id="nav-sim">
-                    <span class="nav-link" data-page="">Simulate</span>
-                </li>
-                <li class="nav-item">
-                    <span class="nav-link" data-page="">Stats</span>
-                </li>
-            </ul>
             <button type="button">
                 <span class="nav-link" data-page="" onclick="ReloadPage()">Reload</span>
 
@@ -75,7 +52,76 @@
     </div>
 
     <main role="main" class="container-fluid" id="mainContainer">
+        <div class="row ">
+            <div class="col-lg-4">
+                <div class="form-check" onclick="CursorChange()">
+                    <input class="form-check-input" type="checkbox" id="btn_diss">
+                    <label class="form-check-label" for="btn_diss">
+                        Show Correlated lines
+                    </label>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                Loaded Instruction Set (ISA): <span style="font-weight:bold" id="isa_div">none!</span>
+            </div>
+            <div class="col-lg-4">
+                Compiler: <span style="font-weight:bold" id="comp_div">none!</span>
+                Disassembler: <span style="font-weight:bold" id="dissas_div">none!</span>
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="row" id="coderow" class="coderow"></div>
+        <div class="row">
+            <div class="col-lg-4">
+
+                <div class="form-row">
+                    <div class="col">
+                        <select id="codetypedropdown" name="filetype" required>
+                            <option value="OCL_SOURCE">OpenCL Kernel code</option>
+                            <option value="GLSL_VERT_SOURCE">GLSL Vert</option>
+                            <option value="GLSL_FRAG_SOURCE">GLSL Frag</option>
+                            <option value="GLSL_GEOM_SOURCE">GLSL Geom</option>
+                            <option value="GLSL_COMP_SOURCE">GLSL Compute</option>
+                            <option value="GLSL_TESC_SOURCE">GLSL Tess Ctrl</option>
+                            <option value="GLSL_TESE_SOURCE">GLSL Tess Eval</option>
+                        </select>
+                    </div>
+                    <div class="col">
+                        <button class="form-check" id="compileButton" onclick="CompileButton()">
+                            Compile
+                        </button>
+                        <div id="compileTAC" style="display:none;">
+                            Source code is uploaded & saved to a remote server for compilation.
+                            This in line with the privacy policy.
+                            Do not submit proprietary or confidential code.
+                            <button class="form-check" onclick="CompileTacAccept()">
+                                Agree
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <div class="row" id="statsrow"></div>
+        <hr><br>
+        <div class="row" id="output"></div>
+        <br>
+        <hr><br>
+        <div class="row" id="errors"></div>
+        <hr><br>
+        <div class="row">
+            <div class="col-lg-4 svgchart" id="chart1"><svg></svg></div>
+            <div class="col-lg-4 svgchart" id="chart2"><svg></svg></div>
+            <div class="col-lg-4 svgchart" id="chart3"><svg></svg></div>
+        </div>
+        <script src="/js/vendor/ace-min/ace.js" type="text/javascript" charset="utf-8"></script>
+
     </main><!-- /.container -->
+
+
 
     <script src="js/vendor/modernizr-3.5.0.min.js"></script>
     <script src="js/vendor/jquery-3.3.1.min.js"></script>
@@ -86,19 +132,108 @@
     <script src="js/plugins.js"></script>
     <script src="https://d3js.org/d3.v5.js"></script>
     <script src="/js/d3Modules/bar.js" type="text/javascript" charset="utf-8"></script>
+    <script src="https://www.google-analytics.com/analytics.js" async defer></script>
+
+    <!-- Footer -->
+    <footer class="page-footer font-small blue">
+        <div class="text-center py-3"> 2019. Sam Serrels, Edinburgh Napier University --
+            <a href="https://www.napier.ac.uk/cookie-policy" target="_blank">Cookie Policy</a> --
+            <a href="https://www.napier.ac.uk/privacy-policy" target="_blank">Privacy policy</a></div>
+    </footer>
+    <!-- Footer -->
+
+    <link rel="stylesheet" type="text/css" href="//cdnjs.cloudflare.com/ajax/libs/cookieconsent2/3.1.0/cookieconsent.min.css" />
+    <script src="//cdnjs.cloudflare.com/ajax/libs/cookieconsent2/3.1.0/cookieconsent.min.js"></script>
+    <script>
+        function clearCookie(d, b, c) {
+            try {
+                if (function (h) {
+                    var e = document.cookie.split(";"), a = "", f = "", g = "";
+                    for (i = 0; i < e.length; i++) {
+                        a = e[i].split("="); f = a[0].replace(/^\s+|\s+$/g, "");
+                        if (f == h) { if (a.length > 1) g = unescape(a[1].replace(/^\s+|\s+$/g, "")); return g }
+                    }
+                    return null
+                }(d)) {
+                    b = b || document.domain; c = c || "/";
+                    document.cookie = d + "=; expires=" + new Date + "; domain=" + b + "; path=" + c
+                }
+            } catch (j) { }
+        };
+        window.addEventListener("load", function () {
+            window.cookieconsent.initialise({
+                "palette": {
+                    "popup": {
+                        "background": "#eb6c44",
+                        "text": "#ffffff"
+                    },
+                    "button": {
+                        "background": "#f5d948"
+                    }
+                },
+                "revokable": true,
+                "type": "opt-in",
+                "content": {
+                    "message": "This site uses cookies (for Google Analytics).",
+                    "href": "https://www.napier.ac.uk/cookie-policy"
+                },
+                onInitialise: function (status) {
+                    var type = this.options.type;
+                    var didConsent = this.hasConsented();
+                    if (type == 'opt-in' && didConsent) {
+                        // enable cookies
+                        window.dataLayer = window.dataLayer || [];
+                        function gtag() { dataLayer.push(arguments); }
+                        gtag('js', new Date());
+                        gtag('config', 'UA-134830502-1');
+                    }
+                },
+
+                onStatusChange: function (status, chosenBefore) {
+                    var type = this.options.type;
+                    var didConsent = this.hasConsented();
+                    if (type == 'opt-in' && didConsent) {
+                        // enable cookies
+                        window.dataLayer = window.dataLayer || [];
+                        function gtag() { dataLayer.push(arguments); }
+                        gtag('js', new Date());
+                        gtag('config', 'UA-134830502-1');
+                    }
+                },
+
+                onRevokeChoice: function () {
+                    var type = this.options.type;
+                    if (type == 'opt-in') {
+                        // disable cookies
+                        clearCookie('_ga', '.gpuvis.napier.ac.uk', '/');
+                        clearCookie('_gat_gtag_UA-134830502-1', '.gpuvis.napier.ac.uk', '/');
+                        clearCookie('_gid', '.gpuvis.napier.ac.uk', '/');
+                    }
+                },
+            })
+        });
+    </script>
+    <script>
+
+        var acceptedTac = false;
+        function CompileButton() {
+            if (acceptedTac) {
+                return Compile();
+            } else {
+                $("#compileButton").prop("disabled", true);
+                $("#compileTAC").show();
+            }
+        }
+        function CompileTacAccept(){
+            acceptedTac = true;
+            $("#compileTAC").remove();
+            $("#compileButton").prop("disabled", false);
+        }
+
+    </script>
+    <script src="js/page_asm.js"></script>
     <script src="js/main.js"></script>
 
-    <!-- Google Analytics: change UA-XXXXX-Y to be your site's ID. -->
-    <script>
-        window.ga = function () {
-            ga.q.push(arguments)
-        };
-        ga.q = [];
-        ga.l = +new Date;
-        ga('create', 'UA-XXXXX-Y', 'auto');
-        ga('send', 'pageview')
-    </script>
-    <script src="https://www.google-analytics.com/analytics.js" async defer></script>
 </body>
 
 </html>

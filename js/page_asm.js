@@ -27,17 +27,23 @@ function main_asm() {
     startup();
 }
 
+
+function LoadProgram(pgrm,callback){
+    $.get(pgrm, 'text')
+    .done(function (data) {
+        console.log("pgrm: ",pgrm, " Loaded")
+        callback(data);
+    })
+    .fail(function () {
+        console.error("Can't get Program!");
+    });
+}
+
+
 function startup() {
-    /*if (!is(program)) {
-        Warn("Load a Program First!")
-        btn_diss.prop("disabled", true);
-        return;
-    }*/
     if (!is(program)) {
         decoded_data = {};
         decoded_data.programs = [];
-        // decoded_data.lines = [];
-        // decoded_data.ops = [];
         program = decoded_data;
         LoadProgram('data/sort.cl.txt', (d) => {
             decoded_data.source = d;
