@@ -64,7 +64,7 @@
                         <ul class="dropdown-menu" role="menu" aria-labelledby="optionsMenu">
                             <form>
                                 <li>
-                                    <div class="form-check" onclick="CursorChange()">
+                                    <div class="form-check" id="correlatedLinesBtn">
                                         <input class="form-check-input" type="checkbox" id="btn_diss">
                                         <label class="form-check-label" for="btn_diss">
                                             Show Correlated lines
@@ -99,6 +99,15 @@
                             </form>
                         </ul>
                     </div>
+
+                    <div class="dropdown">
+                        <button class="btn btn-default dropdown-toggle" type="button" id="samplesMenu" data-toggle="dropdown">
+                            Code Samples<span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu" role="menu" aria-labelledby="samplesMenu">
+                            <form id="samplesForm"> </form>
+                        </ul>
+                    </div>
                 </div>
             </div>
             <div class="col-lg-4">
@@ -129,12 +138,12 @@
                         </select>
                     </div>
                     <div class="col">
-                        <button class="form-check" id="compileButton" onclick="CompileButton()"> Compile </button>
+                        <button class="form-check" id="compileBtn"> Compile </button>
                         <div id="compileTAC" style="display:none;">
                             Source code is uploaded & saved to a remote server for compilation.
                             See the privacy policy.
                             Do not submit proprietary or confidential code.
-                            <button class="form-check" onclick="CompileTacAccept()"> Agree </button>
+                            <button class="form-check" id="CompileTacAcceptBtn"> Agree </button>
                         </div>
                     </div>
                 </div>
@@ -245,28 +254,8 @@
             })
         });
     </script>
-    <script>
-
-        var acceptedTac = false;
-        function CompileButton() {
-            if (acceptedTac) {
-                return Compile();
-            } else {
-                $("#compileButton").prop("disabled", true);
-                $("#compileTAC").show();
-            }
-        }
-        function CompileTacAccept() {
-            acceptedTac = true;
-            $("#compileTAC").remove();
-            $("#compileButton").prop("disabled", false);
-            Compile();
-        }
-
-    </script>
-    <script src="js/page_asm.js"></script>
-    <script src="js/main.js"></script>
-
+<script src="js/utils.js"></script>
+<script src="js/page_asm.js"  type="module"></script>
 </body>
 
 </html>

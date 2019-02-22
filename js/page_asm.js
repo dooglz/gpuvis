@@ -1,8 +1,11 @@
+import AceEditors from "./module_ace_editors.mjs";
+
 var div_kernel_source;
 var div_kernel_asm;
 var div_coderow;
 var div_statsrow;
 var btn_diss;
+var decoded_data;
 var show_regs = true;
 var simplifyConstants = true;
 var Range = ace.require('ace/range').Range;
@@ -15,27 +18,55 @@ var ace_editors = [];
 var correlatedTable = [];
 var toggleobj;
 
+$(document).ready(function () {
+    console.log("hello world");
+    div_main = $("#mainContainer");
+    div_warn = $("#warn_bar");
+    $("#compileBtn").click(CompileButton);
+    $("#CompileTacAcceptBtn").click(CompileTacAccept);
+    $("#correlatedLinesBtn").click(CursorChange);
+    main_asm();
+});
+
+
 function main_asm() {
+    AceEditors.showAsmEditor();
     div_kernel_source = $("#kernel_source");
     div_kernel_asm = $("#kernel_asm");
     div_coderow = $("#coderow");
     btn_diss = $("#btn_diss");
     div_statsrow = $("#statsrow");
     toggleobj = btn_diss.bootstrapToggle();
-    LoadCallback("asm");
+    PopulateSampleList();
     startup();
 }
 
 
-function LoadProgram(pgrm,callback){
+var acceptedTac = false;
+function CompileButton() {
+    if (acceptedTac) {
+        return Compile();
+    } else {
+        $("#compileButton").prop("disabled", true);
+        $("#compileTAC").show();
+    }
+}
+function CompileTacAccept() {
+    acceptedTac = true;
+    $("#compileTAC").remove();
+    $("#compileButton").prop("disabled", false);
+    Compile();
+}
+
+function LoadProgram(pgrm, callback) {
     $.get(pgrm, 'text')
-    .done(function (data) {
-        console.log("pgrm: ",pgrm, " Loaded")
-        callback(data);
-    })
-    .fail(function () {
-        console.error("Can't get Program!");
-    });
+        .done(function (data) {
+            console.log("pgrm: ", pgrm, " Loaded")
+            callback(data);
+        })
+        .fail(function () {
+            console.error("Can't get Program!");
+        });
 }
 
 
@@ -85,6 +116,7 @@ function getCorrelatedAsm(srcline_start, srcline_end) {
     }
     return lines;
 }
+
 function getCorrelatedSrc(asmLine_start, asmLine_end) {
     if (asmLine_end === undefined) { asmLine_end = asmLine_start; }
     let indexes = [];
@@ -141,7 +173,7 @@ function ShowKernel(data) {
         div.append($("<p>" + o.title + "</p>"));
         let pre = $('<div id="pre_' + o.title + '" class="editor"/>').appendTo(div);
         div_coderow.append(div);
-        editor = ace.edit(pre[0]);
+        let editor = ace.edit(pre[0]);
         editor.tag = o.title;
         editor.session.tag = o.title;
         editor.setTheme("ace/theme/github");
@@ -226,7 +258,7 @@ function SourceChanged() {
 
 function UploadDone2(data) {
     log("Upload Done, got Response");
-    result_data = data;
+    let result_data = data;
     var reader = new FileReader();
     reader.addEventListener("loadend", function () {
         decoded_data = msgpack.decode(new Uint8Array(reader.result));
@@ -266,13 +298,13 @@ function Compile() {
             responseType: 'blob'
         },
         xhr: function () {
-            myXhr = $.ajaxSettings.xhr();
+            let myXhr = $.ajaxSettings.xhr();
             if (myXhr.upload) {
                 myXhr.upload.addEventListener('progress', updateProgress, false);
             }
             return myXhr;
         },
-        error: (request, status, errorThrown) => log("error " + request.status + " " + errorThrown, true),
+        error: (request, status, errorThrown) => logError("error " + request.status + " " + errorThrown, true),
     })
     aj.done(UploadDone2);
     return false;
@@ -309,3 +341,34 @@ function doChart2() {
 
     chart2 = new d3_piechart($("#chart2 svg"), dataArray);
 }
+
+
+const sampleFiles = {
+    "OpenCL": [
+        ["Simple Kernel", "ocl_examples/simple1.cl"],
+        ["ImageSample", "ocl_examples/imagesample.cl"],
+        ["nbody Unrolled", "ocl_examples/nbody_unroll.cl"],
+        ["Reduction", "ocl_examples/reduction.cl"],
+    ],
+    "Shader": []
+};
+
+function PopulateSampleList() {
+    let div = $("#samplesForm");
+    for (let typ in sampleFiles) {
+        div.append('<h6 class="dropdown-header">' + typ + '</h6>');
+        for (let fyl of sampleFiles[typ]) {
+            let a = $('<li><a href="javascript:;" >' + fyl[0] + '</a></li>');
+            a.click(()=>LoadSample(fyl[1]));
+            div.append(a);
+        }
+    }
+
+
+}
+
+function LoadSample(sampleUrl) {
+    log("Loading sample " + sampleUrl);
+    LoadProgram('data/'+sampleUrl,()=>{});
+}
+
