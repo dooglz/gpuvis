@@ -3,52 +3,50 @@ let showCorrelation = false;
 let ace_editors = [];
 let markers_a = []
 let markers_b = [];
+//used to test if code in editor has been modified.
+let originalSource = "";
 
 //Have no clue why I have to do this:
 let Range = ace.require("ace/range").Range;
-
-function privateBonk()
-{
-
-}
 
 
 export default class CodeEditor {
     static showAsmEditor(yesno) {
         console.log("bonk");
         privateBonk();
+        
     }
 
     showSourceEditor(yesno) { }
     static enableCorrelation(yesno) {
         showCorrelation = yesno;
     }
-    setSourceCode() {}
-    setAsmCode() {}
-    static getSourceCodeContent(){
+    setSourceCode() { }
+    setAsmCode() { }
+    static getSourceCodeContent() {
         return ace_editors[0].getValue();
     }
-    static showKernel(program){
-        return _showKernel(program);
+    static showKernel(dataSet) {
+        return _showKernel(dataSet);
     }
 }
 
-function _showKernel(data) {
-    let div_coderow = $("#coderow");
-    div_coderow.empty();
+function _showKernel(dataSet) {
+    const div_codeRow = $("#coderow").empty();
 
     let blocks = [];
     ace_editors = [];
 
-    if (data.source !== undefined) {
-        blocks.push({ title: "kernel_source", text: data.source });
+    if (dataSet.source !== undefined) {
+        blocks.push({ title: "kernel_source", text: dataSet.source });
+        originalSource = dataSet.source;
     } else {
         console.error("No kernel source!");
     }
 
     let hasASM = false;
     let asmtext = "";
-    for (let pgrm of data.programs) {
+    for (let pgrm of dataSet.programs) {
         if (pgrm.ops === undefined) {
             console.error("No kernel asm!", pgrm);
         } else {
@@ -71,7 +69,7 @@ function _showKernel(data) {
         let div = $("<div/>", { class: "col col-lg-" + Math.min(bw, o.fw || bw) });
         div.append($("<p>" + o.title + "</p>"));
         let pre = $('<div id="pre_' + o.title + '" class="editor"/>').appendTo(div);
-        div_coderow.append(div);
+        div_codeRow.append(div);
         let editor = ace.edit(pre[0]);
         editor.tag = o.title;
         editor.session.tag = o.title;
@@ -147,18 +145,19 @@ function CursorChange(baseEvent, editor) {
     }
 }
 
+
 function SourceChanged() {
-    if (ace_editors[0].getValue() === decoded_data.source) {
+    if (ace_editors[0].getValue() === originalSource) {
         $("div.cover").remove();
-        toggleobj.bootstrapToggle('enable');
-        toggleobj.bootstrapToggle('on');
+        $("#compileBtn").prop("disabled", false);
     } else {
-        toggleobj.bootstrapToggle('off');
-        toggleobj.bootstrapToggle('disable');
-        var cover = $("<div class=\"cover\"/>");
-        cover.click(function (event) {
-            event.stopPropagation();
-        });
-        ace_editors[1].container.appendChild(cover[0]);
+        $("#compileBtn").prop("disabled", true);
+        if ($("div.cover").length == 0) {
+            let cover = $("<div class=\"cover\"/>");
+            cover.click(function (event) {
+                event.stopPropagation();
+            });
+            ace_editors[1].container.appendChild(cover[0]);
+        }
     }
 }

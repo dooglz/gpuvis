@@ -1,19 +1,32 @@
 import CodeEditor from "./module_CodeEditor.mjs";
 import CorrelationTable from "./module_sourceCorrelate.mjs";
 
-var div_kernel_source;
-var div_kernel_asm;
-
-var div_statsrow;
-var btn_diss;
-var decoded_data;
-var show_regs = true;
-var simplifyConstants = true;
-var Range = ace.require('ace/range').Range;
+var btn_correlated;
 clearInterval(interval);
 var interval = undefined;
-var a = 0;
-var toggleobj;
+
+//only used for debug, this var shouldn't be referenced in code.
+let _dataSet = {};
+
+class Program {
+    name = "";
+    niceName = "";
+    //LineCorralation Data
+    lines = [];
+    //Operations
+    ops = [];
+    //registerEventTicks
+    rET = [];
+    constructor() { }
+}
+
+class DataSet {
+    //Source Code string
+    source = "";
+    programs = [];
+    constructor() { }
+}
+
 
 $(document).ready(function () {
     console.log("hello world");
@@ -21,28 +34,23 @@ $(document).ready(function () {
     div_warn = $("#warn_bar");
     $("#compileBtn").click(CompileButton);
     $("#CompileTacAcceptBtn").click(CompileTacAccept);
-    $("#correlatedLinesBtn").click(()=>CodeEditor.enableCorrelation(!btn_diss.is(':checked')));
+    $("#correlatedLinesBtn").click(() => CodeEditor.enableCorrelation(btn_correlated.is(':checked')));
     main_asm();
 });
 
 
 function main_asm() {
-   // AceEditors.showAsmEditor();
-    div_kernel_source = $("#kernel_source");
-    div_kernel_asm = $("#kernel_asm");
-
-    btn_diss = $("#btn_diss");
-    div_statsrow = $("#statsrow");
-    toggleobj = btn_diss.bootstrapToggle();
+    btn_correlated = $("#btn_correlated");
+    btn_correlated.prop('disabled', true);
     PopulateSampleList();
-    startup();
+    LoadSample("ocl_examples/sort.cl");
 }
 
 
 var acceptedTac = false;
 function CompileButton() {
     if (acceptedTac) {
-        return Compile();
+        return UploadSourceToServer();
     } else {
         $("#compileButton").prop("disabled", true);
         $("#compileTAC").show();
@@ -52,8 +60,9 @@ function CompileTacAccept() {
     acceptedTac = true;
     $("#compileTAC").remove();
     $("#compileButton").prop("disabled", false);
-    Compile();
+    CompileButton();
 }
+
 
 function LoadProgram(pgrm, callback) {
     $.get(pgrm, 'text')
@@ -65,59 +74,63 @@ function LoadProgram(pgrm, callback) {
             console.error("Can't get Program!");
         });
 }
+function LoadSample(sampleUrl) {
+    log("Loading sample " + sampleUrl);
+    LoadProgram('data/' + sampleUrl, (SampleSource) => {
+        let ds = new DataSet();
+        ds.source = SampleSource;
+        DisplayProgram(ds)
+    });
+}
 
 
-function startup() {
-    if (!is(program)) {
-        decoded_data = {};
-        decoded_data.programs = [];
-        program = decoded_data;
-        LoadProgram('data/sort.cl.txt', (d) => {
-            decoded_data.source = d;
-            startup();
-        });
-        return;
+
+function DisplayProgram(dataSet) {
+    _dataSet = dataSet;
+
+
+    if (dataSet.programs.length > 0 && dataSet.programs.some((pgrm) => { return pgrm.lines && pgrm.lines.length > 0; })) {
+        btn_correlated.removeAttr('disabled');
+        CorrelationTable.buildCorrelationTable(dataSet);
+    } else {
+        btn_correlated.prop('disabled', true);
     }
 
-    btn_diss.removeAttr('disabled');
-
-    if (decoded_data.programs.length > 0) {
-        CorrelationTable.buildCorrelationTable();
-    }
-
-    let hasASM = decoded_data.programs.some((pgrm)=>(pgrm.ops !== undefined));
-    CodeEditor.showKernel(program);
-    if(hasASM){
+    let hasASM = dataSet.programs.some((pgrm) => (pgrm.ops !== undefined));
+    CodeEditor.showKernel(dataSet);
+    if (hasASM) {
         doChart();
-        doChart2();
+        doChart2(dataSet);
     }
 }
 
 
 
 
-function UploadDone2(data) {
+function HandleUploadResponse(serverResponse) {
     log("Upload Done, got Response");
-    let result_data = data;
-    var reader = new FileReader();
+    let reader = new FileReader();
     reader.addEventListener("loadend", function () {
-        decoded_data = msgpack.decode(new Uint8Array(reader.result));
+        let decoedObj = msgpack.decode(new Uint8Array(reader.result));
+        console.log(decoedObj);
+        let newDS = new DataSet();
+        newDS = Object.assign(newDS, decoedObj);
         log("Decoded server packet");
-        program = decoded_data;
-
-        for (let pgrm of program.programs) {
+        //strip asic name for program name
+        for (let pgrm of newDS.programs) {
             pgrm.niceName = pgrm.name.replace('gfx900_', '');
-        }
-        startup();
+        };
+        DisplayProgram(newDS);
     });
     try {
-        reader.readAsArrayBuffer(result_data);
+        reader.readAsArrayBuffer(serverResponse);
     } catch (e) {
         log("Can't Decode Results :(");
     }
 }
 
-function Compile() {
+
+function UploadSourceToServer() {
     log("uploading code");
     //var file_data = new FormData(document.getElementById('filename'));
     let formData = new FormData();
@@ -137,16 +150,9 @@ function Compile() {
         xhrFields: {
             responseType: 'blob'
         },
-        xhr: function () {
-            let myXhr = $.ajaxSettings.xhr();
-            if (myXhr.upload) {
-                myXhr.upload.addEventListener('progress', updateProgress, false);
-            }
-            return myXhr;
-        },
         error: (request, status, errorThrown) => logError("error " + request.status + " " + errorThrown, true),
     })
-    aj.done(UploadDone2);
+    aj.done(HandleUploadResponse);
     return false;
 }
 
@@ -156,7 +162,7 @@ function Compile() {
 var chart1;
 function doChart() {
     $("#chart1").empty().html("<h4>Number of ASM ops per Source Line</h4><svg/>")
-    
+
     let chartdata = CorrelationTable.getD3formatted();
 
     //Array of {id: src, value: asmcount}
@@ -164,11 +170,11 @@ function doChart() {
     chart1 = new d3_barchart($("#chart1 svg"), chartdata);
 }
 var chart2;
-function doChart2() {
+function doChart2(dataSet) {
     $("#chart2").empty().html("<h4>ASM types</h4><svg/>")
     //TODO make server do this
     let types = {};
-    for (let pgrm of program.programs) {
+    for (let pgrm of dataSet.programs) {
         pgrm.ops.forEach((e) => {
             let t = e.op[0];
             if (!types[t]) { types[t] = 0; }
@@ -188,6 +194,7 @@ const sampleFiles = {
         ["ImageSample", "ocl_examples/imagesample.cl"],
         ["nbody Unrolled", "ocl_examples/nbody_unroll.cl"],
         ["Reduction", "ocl_examples/reduction.cl"],
+        ["Bitonic Sort", "ocl_examples/sort.cl"]
     ],
     "Shader": []
 };
@@ -198,16 +205,17 @@ function PopulateSampleList() {
         div.append('<h6 class="dropdown-header">' + typ + '</h6>');
         for (let fyl of sampleFiles[typ]) {
             let a = $('<li><a href="javascript:;" >' + fyl[0] + '</a></li>');
-            a.click(()=>LoadSample(fyl[1]));
+            a.click(() => LoadSample(fyl[1]));
             div.append(a);
         }
     }
-
-
 }
 
-function LoadSample(sampleUrl) {
-    log("Loading sample " + sampleUrl);
-    LoadProgram('data/'+sampleUrl,()=>{});
-}
+window.DebugDump = function () {
+    let dd = {
+        "CorrelationTable": CorrelationTable.correlatedTable,
+        "Dataset": _dataSet
+    }
+    console.info(dd);
 
+}

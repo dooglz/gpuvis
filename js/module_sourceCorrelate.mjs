@@ -1,13 +1,11 @@
-
-
 export default class CorrelationTable {
 
     static correlatedTable = [];
 
-    static buildCorrelationTable() {
+    static buildCorrelationTable(dataSet) {
         this.correlatedTable = [];
         let myOffset = 3;
-        for (let pgrm of program.programs) {
+        for (let pgrm of dataSet.programs) {
             const lastline = pgrm.ops.length;
             for (let i = 0; i < pgrm.lines.length; i++) {
                 let srcline = pgrm.lines[i][0];
